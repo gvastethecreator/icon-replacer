@@ -161,6 +161,99 @@ It must:
 - call `IconApplyService` only after a single local folder or `.lnk` target is accepted,
 - return both the accepted shell-selection evaluation and apply result for UI diagnostics.
 
+`IconMenuApplyService` is the shared direct dynamic-menu workflow for a future submenu icon choice.
+
+It must:
+
+- validate the shell selection before scanning or applying menu icons,
+- require the chosen icon path to match a valid entry in the current Icon Library catalog,
+- reject external, invalid, unsupported, or missing menu icon paths before target mutation,
+- call the shared post-picker change workflow after target and menu-icon readiness are accepted,
+- return the selected menu item plus the normal apply/restore-record result for UI and shell diagnostics.
+
+`IconMenuCommandService` is the shared shell-facing menu command descriptor source.
+
+It must:
+
+- derive commands only from `IconMenuService` snapshots,
+- emit a stable `change-icon` command first,
+- emit safe `icon:<hash>` ids for visible Icon Library entries,
+- keep command argument templates bounded and explicit,
+- include category names without flattening them into path parsing logic,
+- add an `open-app` overflow command when menu caps omit icons,
+- add an `open-app` recovery command when the menu is empty or the catalog is unavailable,
+- preserve menu state, status text, and scan error details for diagnostics,
+- avoid target mutation and Explorer registration.
+
+`IconMenuCommandInvocationService` is the shared shell-facing invocation preview path.
+
+It must:
+
+- find command descriptors in the current `IconMenuCommandService` snapshot,
+- reject unknown or stale command ids before invocation,
+- validate target-required commands through `ShellSelectionService`,
+- resolve `{target}` and `{target-kind}` placeholders only for supported local folder or `.lnk` selections,
+- allow non-target commands such as overflow `open-app` without a selection,
+- return final argument lists plus a display string for shell diagnostics,
+- avoid applying icons, opening pickers, launching apps, or registering Explorer.
+
+`ShellExtensionBridgeService` is the shared native shell-extension bridge contract before `IExplorerCommand` implementation.
+
+It must:
+
+- compose `ShellManifestContractService`, `IconMenuCommandService`, and `ShellSelectionService` into one snapshot,
+- expose the stable bridge protocol version, Explorer command CLSID, native DLL path, threading model, required interfaces, and supported item types,
+- include menu state, icon counts, omitted counts, target status, command counts, invocable command counts, and Explorer safety rules,
+- resolve target-required command arguments only when the selected target is one supported local folder or `.lnk`,
+- keep non-target recovery commands such as `open-app` invocable without a target,
+- surface disabled reasons for no selection, unsupported targets, stale menu commands, unavailable catalogs, and other non-ready states,
+- avoid applying icons, opening pickers, launching windows, installing packages, editing the registry, restarting Explorer, or mutating target/icon state.
+
+`AppMenuApplyActivationService` is the shared packaged-app activation preview for direct dynamic-menu icon choices.
+
+It must:
+
+- parse `menu-apply <target> <icon-from-library.ico>` activation arguments,
+- require the selected icon path to map to a current visible `IconMenuCommandService` apply command,
+- validate the target through `IconMenuCommandInvocationService`,
+- return normalized app arguments only when the target and menu icon are both ready,
+- expose disabled reasons for unsupported targets, stale icons, or malformed arguments,
+- avoid applying icons, importing icons, writing target metadata, creating restore history, or registering Explorer.
+
+`ActivatedMenuApplyService` is the shared packaged-app direct submenu apply path.
+
+It must:
+
+- accept only valid `menu-apply` activations,
+- reject malformed activations, unsupported targets, and icons outside the current Icon Library menu before mutation,
+- delegate application to `IconMenuApplyService` so restore history and icon validation stay centralized,
+- return the selected menu item plus the normal apply/restore-record result for UI, CLI, and shell diagnostics.
+
+`ShellManifestContractService` is the shared Modern MSIX shell manifest source before packaging.
+
+It must:
+
+- define `windows.comServer` and `windows.fileExplorerContextMenus` manifest categories,
+- keep one stable Explorer command CLSID for the native extension,
+- use `IconReplacer.ShellExtension.dll` and `STA` for the COM class contract,
+- expose required native interfaces: `IExplorerCommand` and `IExplorerCommandState`,
+- register `Directory` and `.lnk` targets through `desktop5:ItemType` verbs,
+- generate a parseable manifest fragment for packaging review,
+- avoid installing packages, editing the registry, restarting Explorer, or registering shell integration.
+
+`PackagingPlanService` is the shared install/uninstall readiness source before packaging.
+
+It must:
+
+- describe the selected per-user MSIX install mode,
+- surface `winapp`, native build tools, package identity, native shell extension, dev-signing, installer-build, and install/uninstall proof gates,
+- reuse the shell manifest contract instead of duplicating manifest metadata,
+- require uninstall to remove shell integration,
+- preserve `.icons` and restore history by default,
+- avoid installing packages, trusting certificates, editing the registry, restarting Explorer, or deleting user data.
+
+`AppDiagnosticsService` must include native build-tooling diagnostics when the caller supplies `NativeToolingSnapshot`, so setup surfaces can distinguish missing `winapp` from missing Visual Studio C++ build tools before native shell-extension work starts.
+
 ## AppModel Icon Library Operation
 
 `IconLibraryService` is the shared import/status path for CLI and WinUI library-management surfaces.
@@ -180,6 +273,48 @@ Batch import must:
 - preserve dedupe behavior across repeated selections,
 - return final Icon Library status even when some selected files fail.
 
+`CatalogWarningsService` is the shared catalog-warning review path for CLI and WinUI diagnostics/library surfaces.
+
+It must:
+
+- scan the Icon Library through the Core catalog service,
+- expose total valid icon count and warning count,
+- return one warning row per skipped icon with path, display name, optional category, error code, message, and detail,
+- preserve root vs one-level category context,
+- avoid mutating icon files or deleting invalid files.
+
+`IconImportPickerRequestService` is the shared app import-picker request source.
+
+It must:
+
+- prepare the Icon Library and Imported folders before a valid import picker opens,
+- request a multi-select `.ico` picker for app-level imports,
+- use the Icon Library root as the initial directory,
+- target `.icons\Imported` by default,
+- create or reuse a sanitized one-level collection when importing into a selected collection,
+- reject invalid collection names before opening a picker.
+
+`IconCollectionService` is the shared one-level collection-management path for CLI and WinUI library surfaces.
+
+It must:
+
+- list current one-level Icon Library folders with valid icon counts,
+- include the managed `Imported` collection in list results,
+- create sanitized one-level collection folders inside the Icon Library,
+- reject empty or path-escaping collection names,
+- treat creating an existing collection as an idempotent success.
+
+`IconCollectionImportService` is the shared collection-fill path for CLI and WinUI library-management surfaces.
+
+It must:
+
+- create or reuse a sanitized one-level collection,
+- validate each selected local `.ico` independently,
+- copy valid icons into the selected collection,
+- dedupe repeated content inside that collection,
+- return per-file imported, reused-existing, or failed status,
+- return final Icon Library status even when some selected files fail.
+
 ## AppModel Setup Readiness Operation
 
 `SetupReadinessService` is the shared first-run/status path for CLI and WinUI setup surfaces.
@@ -190,7 +325,98 @@ It must:
 - report whether core features are usable,
 - report icon, category, warning, restore-history, and restorable counts,
 - surface setup actions such as importing icons, reviewing catalog warnings, reviewing stale history, and resolving shell integration,
+- surface package-plan blockers as setup actions when packaging/tooling inputs are available,
 - keep shell integration status explicit; after `IR-000`, the default readiness is `NotConfigured` until Modern Explorer integration is installed.
+
+`AppActionRequestService` is the shared setup/home action routing source for the future WinUI app.
+
+It must:
+
+- accept stable setup action ids from `SetupReadinessService`,
+- reject unknown action ids,
+- disable known actions that are not currently available in the app state,
+- map import actions to an import workflow target,
+- map catalog-warning actions to the icon-browser target,
+- map restore-history actions to the correct history filter,
+- map shell-integration actions to shell-plan or diagnostics targets,
+- map package-plan actions to the package-plan route,
+- avoid opening windows, pickers, shell locations, or mutating state.
+
+`AppNavigationService` is the shared route contract for the future WinUI app shell.
+
+It must:
+
+- list stable route ids for top-level screens and workflow surfaces,
+- keep `home` as the default route and `diagnostics` as the fallback route,
+- include library, collection, history, diagnostics, shell-plan, shell-bridge, package-plan, accessibility-plan, restore-preview, and change-icon workflows,
+- expose primary commands for each route so UI layout and QA proof stay aligned,
+- map every `AppActionKind` to a registered route id,
+- avoid depending on WinUI controls, launching windows, opening pickers, or mutating state.
+
+`AppWindowService` is the shared startup-state source for the future WinUI `MainWindow`.
+
+It must:
+
+- compose navigation routes, activation routing, and diagnostics into one startup snapshot,
+- select `home` for normal startup and `change-icon` for valid Explorer-launched activations,
+- keep unsupported `change-icon` targets on the `change-icon` route with a disabled state and reason,
+- fall back to `diagnostics` for malformed activation arguments,
+- expose diagnostic blocker and warning counts for badges,
+- avoid launching WinUI, opening pickers, registering Explorer, or mutating target/icon state.
+
+`AppCommandService` is the shared command-state source for future WinUI route buttons and command bars.
+
+It must:
+
+- derive command state from the current app-window route or any registered route id,
+- expose stable command ids, labels, command kind, primary/secondary status, enabled state, target route or app location, and disabled reasons,
+- keep home commands as navigation to import, browser, history, and diagnostics,
+- expose diagnostics commands including refresh, app-data opening, and blocker review,
+- keep `change-icon` apply/preview disabled until an icon is selected and target/icon readiness is valid,
+- enable `change-icon` preview/apply commands only when the shared change workflow reports selected target and icon readiness,
+- reject unknown route ids before UI rendering,
+- avoid launching WinUI, opening pickers, opening folders, registering Explorer, or mutating target/icon state.
+
+`AppCommandRequestService` is the shared command-button intent source for future WinUI.
+
+It must:
+
+- resolve one command id from the current route command state,
+- return navigation targets for navigation commands,
+- return `AppLocationOpenRequest` for open-location commands without opening Explorer,
+- return refresh/workflow intents without executing them,
+- return disabled reasons for unavailable commands,
+- reject commands that are not registered for the selected route,
+- avoid launching WinUI, opening folders, opening pickers, applying icons, restoring records, registering Explorer, or mutating state.
+
+`AppRouteViewService` is the shared route-composition source for future WinUI rendering.
+
+It must:
+
+- compose app-window state, registered route metadata, command state, and route content into one snapshot,
+- provide ready content for home, icon browser, icon-details with selection, import-icons, collections, history, diagnostics, shell plan, shell bridge, package plan, accessibility plan, restore-preview, and Explorer-launched change-icon routes,
+- pass search text, category filters, and max visible count into the `icon-browser` route so future WinUI rendering and CLI proof use the same browser state,
+- compose `icon-details` route content from the shared selected-icon details service, including display name, category, library membership, image count, and recommended image,
+- compose `import-icons` route content from the shared import picker request, including destination collection, destination directory, `.ico` filter, and multi-select state,
+- compose `package-plan` route content from full `PackagingPlanInputs` when available, so native build-tooling blockers and package blockers stay aligned with CLI packaging proof,
+- compose `shell-bridge` route content from `ShellExtensionBridgeService`, including protocol, CLSID, menu state, target status, command counts, invocable counts, visible/omitted icon commands, and safety rules,
+- keep `icon-details` as a non-ready placeholder until the user supplies a selected icon,
+- compose `change-icon` route content from the shared workflow without opening pickers, applying icons, importing icons, or creating restore history,
+- expose a concise summary and route-specific counts for CLI proof and UI smoke checks,
+- reject unknown route ids before UI rendering,
+- avoid launching WinUI, opening pickers, opening folders, registering Explorer, or mutating target/icon state.
+
+## AppModel Operation Feedback
+
+`AppOperationFeedbackService` is the shared user-facing feedback formatter for CLI and WinUI operation results.
+
+It must:
+
+- turn apply and restore results into success messages with history actions,
+- turn import and batch-import results into success, info, or warning feedback based on reused and failed counts,
+- turn errors into stable error feedback without hiding details,
+- keep action targets as app navigation/workflow ids rather than shell commands,
+- avoid mutating state or deciding whether an operation should run.
 
 ## AppModel Shell Integration Plan Operation
 
@@ -204,6 +430,19 @@ It must:
 - surface required V1 prerequisites such as WinUI templates, `winapp`, package identity, native shell extension, and Explorer registration,
 - report missing `winapp` as blocking for the Modern path without attempting installation.
 
+## AppModel Release Readiness Operation
+
+`ReleaseReadinessService` is the shared release-evidence gate for CLI and future diagnostics/setup surfaces.
+
+It must:
+
+- compose build, test, CLI proof, diagnostics, package, accessibility, manual Explorer, and release evidence gates,
+- keep the accepted Modern MSIX plus native `IExplorerCommand` integration path explicit,
+- reuse package-plan, diagnostics, and accessibility snapshots rather than duplicating those checks,
+- expose evidence commands or document paths for every release item,
+- mark the release not ready while blockers or warnings remain,
+- avoid installing packages, registering Explorer, opening windows, mutating target/icon state, or claiming manual proof before it is captured.
+
 ## AppModel Home Operation
 
 `AppActivationService` is the shared startup routing source for the future packaged WinUI app.
@@ -212,8 +451,10 @@ It must:
 
 - route empty activation arguments to the Home snapshot,
 - route `change-icon --target <path> --target-kind <folder|shortcut>` arguments through `AppLaunchRequestService`,
+- route `menu-apply <target> <icon-from-library.ico>` arguments through `AppMenuApplyActivationService`,
 - preserve malformed-argument failures as explicit activation errors,
 - return disabled change-icon activation snapshots when a selected target is unsupported,
+- return disabled menu-apply activation snapshots when the target or menu icon is unsupported,
 - avoid opening pickers or mutating targets during activation routing.
 
 `ActivatedIconChangeService` is the shared post-picker orchestration path for a packaged app that was launched by `change-icon`.
@@ -225,6 +466,17 @@ It must:
 - preview selected icons without writing target metadata, imported icons, or restore history,
 - apply selected icons through `IconChangeService` so restore history and import behavior stay consistent,
 - reject invalid icons before target mutation.
+
+`AppChangeIconWorkflowService` is the shared non-mutating route state source for the future WinUI `change-icon` workflow.
+
+It must:
+
+- require a `change-icon` packaged-app activation,
+- expose whether the route is waiting for an icon, ready to apply, or blocked,
+- surface target readiness and picker readiness before a file picker opens,
+- accept an optional selected `.ico` path and use the activated preview path to validate target plus icon together,
+- keep invalid icon and unsupported target states visible with stable disabled reasons,
+- avoid importing icons, writing target metadata, creating restore history, launching pickers, or registering Explorer.
 
 `AppHomeService` is the shared first-screen state source for the future WinUI app.
 
@@ -268,6 +520,9 @@ It must:
 - return Icon Library, Imported Icons, AppData, and Restore State locations,
 - distinguish file vs directory targets,
 - report whether each target currently exists without creating the restore-state file.
+- create safe open requests only for known app locations,
+- disable open requests for missing files without creating them,
+- expose directory vs file shell verbs so UI can choose a launcher behavior without duplicating path logic.
 
 ## AppModel Restore History Operation
 
@@ -292,6 +547,20 @@ It must:
 - explain disabled restore actions with user-facing health text,
 - keep missing applied-icon rows restorable with a warning when the target still exists, because restore uses the saved previous-state snapshot.
 
+## AppModel Restore Workflow Operation
+
+`AppRestoreWorkflowService` is the shared non-mutating route state source for the future WinUI restore workflow.
+
+It must:
+
+- compose restore history and the selected restore record into one screen snapshot,
+- expose whether the route needs a record selection, is ready to restore, or is blocked,
+- preview selected records through `IconRestorePreviewService`,
+- keep missing, already-restored, stale, and warning states visible with stable reasons,
+- return missing selected records as a blocked workflow state while preserving the loaded history,
+- feed `AppRouteViewService` and `AppCommandService` so the restore route can render history, selected-record details, confirm/cancel commands, and disabled reasons from one state source,
+- avoid restoring targets, updating restore records, launching pickers, or registering Explorer.
+
 ## AppModel Diagnostics Operation
 
 `AppDiagnosticsService` is the shared diagnostics/readiness path for the future WinUI diagnostics surface.
@@ -302,6 +571,19 @@ It must:
 - classify each check as pass, info, warning, or blocking,
 - keep `winapp` and WinUI templates as separate checks,
 - report missing `winapp` as a blocker for WinUI scaffolding/running without attempting installation.
+
+## AppModel Accessibility Plan Operation
+
+`AccessibilityPlanService` is the shared accessibility acceptance source for future WinUI implementation and CLI planning proof.
+
+It must:
+
+- list V1 keyboard reachability and focus-return requirements,
+- list accessible-name and semantic requirements for icon-only controls, icon tiles, and persistent errors,
+- list visual adaptation requirements for high contrast, 200% scaling, and long paths,
+- list manual proof items that still require screenshots or notes after WinUI exists,
+- list the WinUI surfaces and primary commands covered by the acceptance plan,
+- avoid depending on WinUI controls, opening windows, mutating state, or claiming visual proof before the UI is implemented.
 
 ## AppModel Restore Operation
 

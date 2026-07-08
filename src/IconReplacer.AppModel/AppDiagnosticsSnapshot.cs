@@ -5,6 +5,7 @@ public sealed record AppDiagnosticsSnapshot(
     DashboardSnapshot Dashboard,
     IReadOnlyList<AppLocationTarget> Locations,
     WinUiToolingSnapshot WinUiTooling,
+    NativeToolingSnapshot NativeTooling,
     IReadOnlyList<AppDiagnosticCheck> Checks,
     DateTimeOffset RefreshedAt)
 {

@@ -21,7 +21,7 @@ public sealed class IconMenuService
         var catalog = _catalogService.Scan(paths);
         if (!catalog.Succeeded || catalog.Value is null)
         {
-            return OperationResult<IconMenuSnapshot>.Failure(catalog.Error);
+            return OperationResult<IconMenuSnapshot>.Success(CreateUnavailableSnapshot(paths, catalog.Error));
         }
 
         var rootEntries = catalog.Value.Entries
@@ -50,15 +50,22 @@ public sealed class IconMenuService
             visibleCategories.Sum(category => category.OmittedIconCount) +
             omittedFromHiddenCategories;
 
+        var state = GetState(catalog.Value.Entries.Count, omittedIconCount, catalog.Value.Warnings.Count);
+        var (statusMessage, recommendedActionLabel) = GetStatus(state, catalog.Value.Warnings.Count);
+
         return OperationResult<IconMenuSnapshot>.Success(new IconMenuSnapshot(
             catalog.Value.LibraryRoot,
             DefaultChangeIconCommandLabel,
+            state,
+            statusMessage,
+            recommendedActionLabel,
             catalog.Value.Entries.Count,
             visibleIconCount,
             omittedIconCount,
             rootIcons,
             visibleCategories,
             catalog.Value.Warnings,
+            IconReplacerError.None,
             DateTimeOffset.UtcNow));
     }
 
@@ -98,5 +105,62 @@ public sealed class IconMenuService
     private static IconMenuItem ToMenuItem(IconLibraryEntry entry)
     {
         return new IconMenuItem(entry.DisplayName, entry.FullPath);
+    }
+
+    private static IconMenuSnapshot CreateUnavailableSnapshot(IconLibraryPaths paths, IconReplacerError error)
+    {
+        return new IconMenuSnapshot(
+            paths.LibraryRoot,
+            DefaultChangeIconCommandLabel,
+            IconMenuState.Unavailable,
+            "The Icon Library could not be scanned. Change icon can still open the picker, and the app can show diagnostics.",
+            "Open diagnostics",
+            TotalIconCount: 0,
+            VisibleIconCount: 0,
+            OmittedIconCount: 0,
+            Array.Empty<IconMenuItem>(),
+            Array.Empty<IconMenuCategory>(),
+            Array.Empty<IconCatalogWarning>(),
+            error,
+            DateTimeOffset.UtcNow);
+    }
+
+    private static IconMenuState GetState(int totalIconCount, int omittedIconCount, int warningCount)
+    {
+        if (totalIconCount == 0)
+        {
+            return IconMenuState.Empty;
+        }
+
+        if (omittedIconCount > 0)
+        {
+            return IconMenuState.Truncated;
+        }
+
+        return warningCount > 0 ? IconMenuState.HasWarnings : IconMenuState.Ready;
+    }
+
+    private static (string StatusMessage, string? RecommendedActionLabel) GetStatus(
+        IconMenuState state,
+        int warningCount)
+    {
+        return state switch
+        {
+            IconMenuState.Empty when warningCount > 0 => (
+                $"No valid icons were found, and {warningCount} .ico file(s) could not be read.",
+                "Review catalog warnings"),
+            IconMenuState.Empty => (
+                "No icons were found in the Icon Library. Add .ico files or create folders under .icons.",
+                "Import icons"),
+            IconMenuState.Truncated => (
+                "The Icon Library is larger than the bounded shell menu. Open the app to browse every icon.",
+                "Open Icon Replacer"),
+            IconMenuState.HasWarnings => (
+                $"The menu is ready, but {warningCount} .ico file(s) could not be read.",
+                "Review catalog warnings"),
+            _ => (
+                "The Icon Library menu is ready.",
+                null)
+        };
     }
 }

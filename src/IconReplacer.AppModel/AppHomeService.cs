@@ -27,9 +27,10 @@ public sealed class AppHomeService
     public OperationResult<AppHomeSnapshot> GetSnapshot(
         IconLibraryPaths paths,
         RestoreHistoryFilter historyFilter = RestoreHistoryFilter.All,
-        IconMenuOptions? menuOptions = null)
+        IconMenuOptions? menuOptions = null,
+        PackagingPlanInputs? packagingInputs = null)
     {
-        var setup = _setupReadinessService.GetSnapshot(paths);
+        var setup = _setupReadinessService.GetSnapshot(paths, packagingInputs);
         if (!setup.Succeeded || setup.Value is null)
         {
             return OperationResult<AppHomeSnapshot>.Failure(setup.Error);
@@ -70,7 +71,8 @@ public sealed class AppHomeService
 
     public OperationResult<AppHomeSnapshot> GetSnapshotFromEnvironment(
         RestoreHistoryFilter historyFilter = RestoreHistoryFilter.All,
-        IconMenuOptions? menuOptions = null)
+        IconMenuOptions? menuOptions = null,
+        PackagingPlanInputs? packagingInputs = null)
     {
         var paths = IconLibraryPaths.FromEnvironment();
         if (!paths.Succeeded || paths.Value is null)
@@ -78,6 +80,6 @@ public sealed class AppHomeService
             return OperationResult<AppHomeSnapshot>.Failure(paths.Error);
         }
 
-        return GetSnapshot(paths.Value, historyFilter, menuOptions);
+        return GetSnapshot(paths.Value, historyFilter, menuOptions, packagingInputs);
     }
 }

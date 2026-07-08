@@ -11,7 +11,7 @@ public sealed class FolderIconService
         IExplorerChangeNotifier? changeNotifier = null)
     {
         _importer = importer ?? new IconLibraryImporter();
-        _changeNotifier = changeNotifier ?? new NoOpExplorerChangeNotifier();
+        _changeNotifier = changeNotifier ?? new WindowsExplorerChangeNotifier();
     }
 
     public OperationResult<FolderIconApplyResult> Apply(

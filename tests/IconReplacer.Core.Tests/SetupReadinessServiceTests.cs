@@ -44,6 +44,26 @@ public sealed class SetupReadinessServiceTests
     }
 
     [Fact]
+    public void GetSnapshotAddsPackagePlanActionWhenModernPackagePathIsBlocked()
+    {
+        using var temp = new TempDirectory();
+        var paths = IconLibraryPaths.FromRoots(temp.PathFor("user"), temp.PathFor("appdata")).Value!;
+        TestIconFactory.WriteValidIcon(Path.Combine(paths.LibraryRoot, "Work", "blue.ico"));
+
+        var snapshot = new SetupReadinessService().GetSnapshot(
+            paths,
+            PackagingPlanInputs.FromTooling(MissingWinAppTooling()));
+
+        Assert.True(snapshot.Succeeded, snapshot.Error.Message);
+        Assert.NotNull(snapshot.Value);
+        var action = Assert.Single(snapshot.Value.Actions, action =>
+            action.Id == SetupActionIds.ReviewPackagePlan);
+        Assert.Equal(SetupActionSeverity.Blocking, action.Severity);
+        Assert.Contains("package blockers", action.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(snapshot.Value.Actions, action => action.Id == SetupActionIds.ConfigureShellIntegration);
+    }
+
+    [Fact]
     public void GetSnapshotCanStillReportPendingDecisionWhenInjected()
     {
         using var temp = new TempDirectory();
@@ -72,5 +92,15 @@ public sealed class SetupReadinessServiceTests
         Assert.True(snapshot.Value.CanUseCoreFeatures);
         Assert.Equal(1, snapshot.Value.CatalogWarningCount);
         Assert.Contains(snapshot.Value.Actions, action => action.Id == "review-catalog-warnings");
+    }
+
+    private static WinUiToolingSnapshot MissingWinAppTooling()
+    {
+        return new WinUiToolingSnapshot(
+            IsChecked: true,
+            WinUiTemplatesAvailable: true,
+            WinAppAvailable: false,
+            "WinUI templates are available.",
+            "winapp CLI is missing.");
     }
 }

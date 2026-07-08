@@ -20,7 +20,8 @@ public sealed class AppDiagnosticsService
 
     public OperationResult<AppDiagnosticsSnapshot> GetDiagnostics(
         IconLibraryPaths paths,
-        WinUiToolingSnapshot? winUiTooling = null)
+        WinUiToolingSnapshot? winUiTooling = null,
+        NativeToolingSnapshot? nativeTooling = null)
     {
         var setup = _setupReadinessService.GetSnapshot(paths);
         if (!setup.Succeeded || setup.Value is null)
@@ -41,18 +42,21 @@ public sealed class AppDiagnosticsService
         }
 
         var tooling = winUiTooling ?? WinUiToolingSnapshot.NotChecked;
-        var checks = BuildChecks(setup.Value, dashboard.Value, locations.Value, tooling);
+        var native = nativeTooling ?? NativeToolingSnapshot.NotChecked;
+        var checks = BuildChecks(setup.Value, dashboard.Value, locations.Value, tooling, native);
         return OperationResult<AppDiagnosticsSnapshot>.Success(new AppDiagnosticsSnapshot(
             setup.Value,
             dashboard.Value,
             locations.Value,
             tooling,
+            native,
             checks,
             DateTimeOffset.UtcNow));
     }
 
     public OperationResult<AppDiagnosticsSnapshot> GetDiagnosticsFromEnvironment(
-        WinUiToolingSnapshot? winUiTooling = null)
+        WinUiToolingSnapshot? winUiTooling = null,
+        NativeToolingSnapshot? nativeTooling = null)
     {
         var paths = IconLibraryPaths.FromEnvironment();
         if (!paths.Succeeded || paths.Value is null)
@@ -60,14 +64,15 @@ public sealed class AppDiagnosticsService
             return OperationResult<AppDiagnosticsSnapshot>.Failure(paths.Error);
         }
 
-        return GetDiagnostics(paths.Value, winUiTooling);
+        return GetDiagnostics(paths.Value, winUiTooling, nativeTooling);
     }
 
     private static IReadOnlyList<AppDiagnosticCheck> BuildChecks(
         SetupReadinessSnapshot setup,
         DashboardSnapshot dashboard,
         IReadOnlyList<AppLocationTarget> locations,
-        WinUiToolingSnapshot winUiTooling)
+        WinUiToolingSnapshot winUiTooling,
+        NativeToolingSnapshot nativeTooling)
     {
         var checks = new List<AppDiagnosticCheck>
         {
@@ -88,7 +93,8 @@ public sealed class AppDiagnosticsService
                 : Info("restore-icons", "Restore history has missing icon references", $"{dashboard.MissingAppliedIconRecordCount} history entries point to missing applied icon files."),
             ShellIntegrationCheck(setup.ShellIntegration),
             WinUiTemplatesCheck(winUiTooling),
-            WinAppCheck(winUiTooling)
+            WinAppCheck(winUiTooling),
+            NativeToolingCheck(nativeTooling)
         };
 
         foreach (var location in locations)
@@ -150,6 +156,21 @@ public sealed class AppDiagnosticsService
         return tooling.WinAppAvailable
             ? Pass("winapp", "winapp CLI available", tooling.WinAppDetail)
             : Blocking("winapp", "winapp CLI missing", "Run /winui-setup before scaffolding or running the WinUI app.");
+    }
+
+    private static AppDiagnosticCheck NativeToolingCheck(NativeToolingSnapshot tooling)
+    {
+        if (!tooling.IsChecked)
+        {
+            return Info("native-build-tools", "Native build tools not checked", tooling.Summary);
+        }
+
+        return tooling.CanBuildNativeExtension
+            ? Pass("native-build-tools", "Native build tools available", tooling.Summary)
+            : Blocking(
+                "native-build-tools",
+                "Native build tools missing",
+                "Install Visual Studio C++ Build Tools or use a Developer Command Prompt before building IconReplacer.ShellExtension.dll. " + tooling.Summary);
     }
 
     private static AppDiagnosticCheck Pass(string id, string title, string detail)

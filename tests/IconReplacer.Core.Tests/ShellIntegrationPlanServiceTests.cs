@@ -23,6 +23,8 @@ public sealed class ShellIntegrationPlanServiceTests
         Assert.Contains(plan.Items, item =>
             item.Id == "decision" && item.Status == AppDiagnosticStatus.Pass && item.RequiredForV1);
         Assert.Contains(plan.Items, item =>
+            item.Id == "manifest-contract" && item.Status == AppDiagnosticStatus.Pass && item.RequiredForV1);
+        Assert.Contains(plan.Items, item =>
             item.Id == "explorer-registration" && item.Status == AppDiagnosticStatus.Warning);
     }
 

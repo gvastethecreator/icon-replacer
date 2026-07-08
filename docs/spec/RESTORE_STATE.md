@@ -28,6 +28,7 @@ Each Restore Record should include:
 - Restore failure is reported with a recovery reason.
 - Missing or moved Targets do not cause silent deletion of history.
 - Recent-change views classify each Restore Record with target availability, applied-icon availability, and whether restore is currently possible.
+- Restore preview views classify one Restore Record before mutation and expose the blocking reason or warning shown to the user.
 - Product restore rejects records that are not currently `Applied`; restored history remains visible but is not treated as actionable.
 
 ## Non-Guarantees
@@ -45,3 +46,22 @@ The AppModel layer exposes:
 - `CanRestore`: record status is `Applied` and the target exists.
 
 `CanRestore` does not require `AppliedIconExists` because restoring uses the previous state snapshot, not the applied icon file. Missing icon paths are still surfaced as history warnings.
+
+## Restore Preview Contract
+
+`IconRestorePreviewService` reads one Restore Record by id and does not mutate target files or restore state.
+
+It returns:
+
+- the same `RestoreRecordSummary` health fields used by history,
+- `PreviousStateDetail` for a human-readable confirmation line,
+- `RestoreActionDetail` for the action the app will perform,
+- `CanRestore`,
+- `WarningText` when the applied icon file is missing but restore can continue,
+- an `Error` when the restore action must be disabled.
+
+Blocking rules:
+
+- non-`Applied` records return `InvalidArgument`,
+- missing targets return `PathNotFound`,
+- missing applied icon files are warnings, not blockers.

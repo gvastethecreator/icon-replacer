@@ -7,6 +7,7 @@ public sealed record AppActivationSnapshot(
     IReadOnlyList<string> Arguments,
     AppHomeSnapshot? Home,
     AppLaunchRequestSnapshot? LaunchRequest,
+    AppMenuApplyActivationSnapshot? MenuApplyRequest,
     bool CanContinue,
     IconReplacerError Error,
     DateTimeOffset RefreshedAt);

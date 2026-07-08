@@ -43,7 +43,8 @@ public sealed class AppDiagnosticsServiceTests
                 WinUiTemplatesAvailable: true,
                 WinAppAvailable: false,
                 "templates ready",
-                "winapp missing"));
+                "winapp missing"),
+            MissingNativeTooling());
 
         Assert.True(diagnostics.Succeeded, diagnostics.Error.Message);
         Assert.NotNull(diagnostics.Value);
@@ -52,6 +53,8 @@ public sealed class AppDiagnosticsServiceTests
             check.Id == "icon-library-content" && check.Status == AppDiagnosticStatus.Warning);
         Assert.Contains(diagnostics.Value.Checks, check =>
             check.Id == "winapp" && check.Status == AppDiagnosticStatus.Blocking);
+        Assert.Contains(diagnostics.Value.Checks, check =>
+            check.Id == "native-build-tools" && check.Status == AppDiagnosticStatus.Blocking);
     }
 
     [Fact]
@@ -69,5 +72,17 @@ public sealed class AppDiagnosticsServiceTests
             check.Id == "catalog-warnings" && check.Status == AppDiagnosticStatus.Warning);
         Assert.Contains(diagnostics.Value.Checks, check =>
             check.Id == "winapp" && check.Status == AppDiagnosticStatus.Info);
+    }
+
+    private static NativeToolingSnapshot MissingNativeTooling()
+    {
+        return new NativeToolingSnapshot(
+            IsChecked: true,
+            CompilerAvailable: false,
+            MsBuildAvailable: false,
+            CMakeAvailable: true,
+            "cl.exe missing.",
+            "Visual Studio MSBuild missing.",
+            "CMake available.");
     }
 }

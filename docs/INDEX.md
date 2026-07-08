@@ -45,4 +45,4 @@ Date: 2026-07-07
 
 ## Current Grilling State
 
-The V1 shell integration decision is accepted as Modern Shell Integration: MSIX package identity plus a native `IExplorerCommand` extension. Classic HKCU verbs remain a fallback/prototype path. The selected path is not configured yet because the packaged WinUI/native-extension prerequisites still need implementation and `winapp` is currently missing.
+The V1 shell integration decision is accepted as Modern Shell Integration: MSIX package identity plus a native `IExplorerCommand` extension. Classic HKCU verbs remain a fallback/prototype path. WinUI tooling and native build tools are available; the selected path is not configured yet because the package identity, native extension, signing, installer, Explorer registration, and install/uninstall proof still need implementation.

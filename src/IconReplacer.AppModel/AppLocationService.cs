@@ -39,6 +39,57 @@ public sealed class AppLocationService
         return GetLocations(paths.Value);
     }
 
+    public OperationResult<AppLocationOpenRequest> CreateOpenRequest(
+        AppLocationKind kind,
+        IconLibraryPaths paths)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            return OperationResult<AppLocationOpenRequest>.Failure(new IconReplacerError(
+                ErrorCode.InvalidArgument,
+                "The app location kind is not valid.",
+                kind.ToString()));
+        }
+
+        var locations = GetLocations(paths);
+        if (!locations.Succeeded || locations.Value is null)
+        {
+            return OperationResult<AppLocationOpenRequest>.Failure(locations.Error);
+        }
+
+        var location = locations.Value.First(item => item.Kind == kind);
+        if (!location.Exists)
+        {
+            return OperationResult<AppLocationOpenRequest>.Success(new AppLocationOpenRequest(
+                location,
+                CanOpen: false,
+                location.FullPath,
+                ShellVerb: "open",
+                new IconReplacerError(
+                    ErrorCode.PathNotFound,
+                    "The app location does not exist yet.",
+                    location.FullPath)));
+        }
+
+        return OperationResult<AppLocationOpenRequest>.Success(new AppLocationOpenRequest(
+            location,
+            CanOpen: true,
+            location.FullPath,
+            location.IsDirectory ? "open" : "open-file",
+            IconReplacerError.None));
+    }
+
+    public OperationResult<AppLocationOpenRequest> CreateOpenRequestFromEnvironment(AppLocationKind kind)
+    {
+        var paths = IconLibraryPaths.FromEnvironment();
+        if (!paths.Succeeded || paths.Value is null)
+        {
+            return OperationResult<AppLocationOpenRequest>.Failure(paths.Error);
+        }
+
+        return CreateOpenRequest(kind, paths.Value);
+    }
+
     private static AppLocationTarget DirectoryTarget(AppLocationKind kind, string label, string path)
     {
         return new AppLocationTarget(

@@ -43,6 +43,25 @@ public sealed class AppHomeServiceTests
     }
 
     [Fact]
+    public void GetSnapshotIncludesPackagePlanActionWhenPackagingInputsAreBlocked()
+    {
+        using var temp = new TempDirectory();
+        var paths = IconLibraryPaths.FromRoots(temp.PathFor("user"), temp.PathFor("appdata")).Value!;
+        TestIconFactory.WriteValidIcon(Path.Combine(paths.LibraryRoot, "Work", "blue.ico"));
+
+        var snapshot = new AppHomeService().GetSnapshot(
+            paths,
+            packagingInputs: PackagingPlanInputs.FromTooling(MissingWinAppTooling()));
+
+        Assert.True(snapshot.Succeeded, snapshot.Error.Message);
+        Assert.NotNull(snapshot.Value);
+        Assert.Contains(snapshot.Value.Setup.Actions, action =>
+            action.Id == SetupActionIds.ReviewPackagePlan &&
+            action.Severity == SetupActionSeverity.Blocking);
+        Assert.True(snapshot.Value.NeedsAttention);
+    }
+
+    [Fact]
     public void GetSnapshotHonorsHistoryFilterAndMenuCaps()
     {
         using var temp = new TempDirectory();
@@ -76,5 +95,15 @@ public sealed class AppHomeServiceTests
         var record = Assert.Single(snapshot.Value.History.Records);
         Assert.Equal(staleRecord.Id, record.Id);
         Assert.False(record.CanRestore);
+    }
+
+    private static WinUiToolingSnapshot MissingWinAppTooling()
+    {
+        return new WinUiToolingSnapshot(
+            IsChecked: true,
+            WinUiTemplatesAvailable: true,
+            WinAppAvailable: false,
+            "WinUI templates are available.",
+            "winapp CLI is missing.");
     }
 }

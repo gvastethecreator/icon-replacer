@@ -13,7 +13,7 @@ public sealed class ShortcutIconService
     {
         _importer = importer ?? new IconLibraryImporter();
         _shellLinkClient = shellLinkClient ?? new ShellLinkClient();
-        _changeNotifier = changeNotifier ?? new NoOpExplorerChangeNotifier();
+        _changeNotifier = changeNotifier ?? new WindowsExplorerChangeNotifier();
     }
 
     public OperationResult<ShortcutIconApplyResult> Apply(
@@ -114,4 +114,3 @@ public sealed class ShortcutIconService
             ExplorerRefreshRequested: true));
     }
 }
-
