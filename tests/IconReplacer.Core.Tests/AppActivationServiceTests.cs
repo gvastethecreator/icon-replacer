@@ -20,6 +20,7 @@ public sealed class AppActivationServiceTests
         Assert.True(activation.Value.CanContinue);
         Assert.NotNull(activation.Value.Home);
         Assert.Null(activation.Value.LaunchRequest);
+        Assert.Null(activation.Value.MenuApplyRequest);
         Assert.Equal(1, activation.Value.Home.Dashboard.IconCount);
     }
 
@@ -47,8 +48,34 @@ public sealed class AppActivationServiceTests
         Assert.True(activation.Value.CanContinue);
         Assert.Null(activation.Value.Home);
         Assert.NotNull(activation.Value.LaunchRequest);
+        Assert.Null(activation.Value.MenuApplyRequest);
         Assert.Equal(TargetKind.Folder, activation.Value.LaunchRequest.Selection.Target!.Kind);
         Assert.True(activation.Value.LaunchRequest.PickerRequest.CanOpenPicker);
+    }
+
+    [Fact]
+    public void ActivateWithMenuApplyArgumentsReturnsMenuApplyRequest()
+    {
+        using var temp = new TempDirectory();
+        var paths = IconLibraryPaths.FromRoots(temp.PathFor("user"), temp.PathFor("appdata")).Value!;
+        var folder = temp.PathFor("Project");
+        var icon = Path.Combine(paths.LibraryRoot, "Work", "blue.ico");
+        Directory.CreateDirectory(folder);
+        TestIconFactory.WriteValidIcon(icon);
+
+        var activation = new AppActivationService().Activate(
+            [IconMenuCommandService.MenuApplyVerbName, folder, icon],
+            paths);
+
+        Assert.True(activation.Succeeded, activation.Error.Message);
+        Assert.NotNull(activation.Value);
+        Assert.Equal(AppActivationKind.MenuApply, activation.Value.Kind);
+        Assert.True(activation.Value.CanContinue);
+        Assert.Null(activation.Value.Home);
+        Assert.Null(activation.Value.LaunchRequest);
+        Assert.NotNull(activation.Value.MenuApplyRequest);
+        Assert.True(activation.Value.MenuApplyRequest.CanApply);
+        Assert.Equal(icon, activation.Value.MenuApplyRequest.RequestedIconPath);
     }
 
     [Fact]
@@ -75,6 +102,7 @@ public sealed class AppActivationServiceTests
         Assert.False(activation.Value.CanContinue);
         Assert.Equal(ErrorCode.UnsupportedTarget, activation.Value.Error.Code);
         Assert.NotNull(activation.Value.LaunchRequest);
+        Assert.Null(activation.Value.MenuApplyRequest);
         Assert.Empty(activation.Value.LaunchRequest.AppArguments);
     }
 

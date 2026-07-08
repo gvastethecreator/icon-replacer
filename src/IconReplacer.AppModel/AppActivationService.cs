@@ -6,13 +6,16 @@ public sealed class AppActivationService
 {
     private readonly AppHomeService _homeService;
     private readonly AppLaunchRequestService _launchRequestService;
+    private readonly AppMenuApplyActivationService _menuApplyActivationService;
 
     public AppActivationService(
         AppHomeService? homeService = null,
-        AppLaunchRequestService? launchRequestService = null)
+        AppLaunchRequestService? launchRequestService = null,
+        AppMenuApplyActivationService? menuApplyActivationService = null)
     {
         _homeService = homeService ?? new AppHomeService();
         _launchRequestService = launchRequestService ?? new AppLaunchRequestService();
+        _menuApplyActivationService = menuApplyActivationService ?? new AppMenuApplyActivationService();
     }
 
     public OperationResult<AppActivationSnapshot> Activate(
@@ -39,8 +42,28 @@ public sealed class AppActivationService
                 [],
                 home.Value,
                 LaunchRequest: null,
+                MenuApplyRequest: null,
                 CanContinue: true,
                 IconReplacerError.None,
+                DateTimeOffset.UtcNow));
+        }
+
+        if (string.Equals(arguments[0], IconMenuCommandService.MenuApplyVerbName, StringComparison.OrdinalIgnoreCase))
+        {
+            var menuApply = _menuApplyActivationService.PreviewActivation(arguments, paths);
+            if (!menuApply.Succeeded || menuApply.Value is null)
+            {
+                return OperationResult<AppActivationSnapshot>.Failure(menuApply.Error);
+            }
+
+            return OperationResult<AppActivationSnapshot>.Success(new AppActivationSnapshot(
+                AppActivationKind.MenuApply,
+                arguments.ToArray(),
+                Home: null,
+                LaunchRequest: null,
+                menuApply.Value,
+                menuApply.Value.CanApply,
+                menuApply.Value.Error,
                 DateTimeOffset.UtcNow));
         }
 
@@ -55,6 +78,7 @@ public sealed class AppActivationService
             arguments.ToArray(),
             Home: null,
             launch.Value,
+            MenuApplyRequest: null,
             launch.Value.CanLaunch,
             launch.Value.Error,
             DateTimeOffset.UtcNow));

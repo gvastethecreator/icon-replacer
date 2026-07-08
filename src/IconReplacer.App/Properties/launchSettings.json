@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IconReplacer.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "IconReplacer.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

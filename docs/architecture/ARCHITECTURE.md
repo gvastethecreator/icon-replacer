@@ -29,12 +29,18 @@ Responsibilities:
 
 - expose first-run setup/readiness state,
 - expose app-location targets for Open Library and diagnostics actions,
+- expose app-action request targets for setup/home commands,
+- expose operation feedback for UI/CLI success, warning, and error messages,
+- expose catalog-warning snapshots for diagnostics and cleanup views,
 - expose dashboard snapshots for app diagnostics,
 - coordinate Icon Library import and status operations,
 - expose filtered restore-history snapshots for recent changes,
+- expose restore-preview snapshots for confirmation before restore mutations,
 - coordinate apply operations that mutate a target and persist restore history,
 - coordinate restore operations that revert a target and update restore history,
 - build bounded dynamic menu snapshots from the current Icon Library,
+- resolve shell-menu command descriptors and invocation previews,
+- expose shell-extension bridge snapshots as route content for setup/diagnostics review,
 - keep WinUI, CLI, and shell surfaces from duplicating product workflow logic.
 
 This layer may depend on `IconReplacer.Core`, but not on WinUI controls or shell registration.
@@ -70,6 +76,7 @@ Responsibilities:
 - show `Change icon...`,
 - expose Icon Library entries when feasible,
 - use bounded AppModel menu snapshots rather than ad hoc catalog traversal,
+- follow AppModel shell-extension bridge snapshots for manifest, selection, argument, and safety-rule behavior,
 - avoid long work on Explorer UI paths,
 - delegate heavy behavior to AppModel, CLI, or app process.
 

@@ -17,6 +17,11 @@ public sealed class ShellIntegrationPlanService
                 "Modern shell integration selected",
                 "V1 targets the Windows 11 context-menu path with package identity and a native IExplorerCommand extension.",
                 requiredForV1: true),
+            Pass(
+                "manifest-contract",
+                "Modern shell manifest contract ready",
+                "The shell-manifest contract defines windows.comServer and windows.fileExplorerContextMenus entries for Directory and .lnk targets.",
+                requiredForV1: true),
             ToolingItem(
                 "winui-templates",
                 "WinUI templates",
