@@ -64,7 +64,7 @@ public sealed class SetupReadinessServiceTests
     }
 
     [Fact]
-    public void GetSnapshotCanStillReportPendingDecisionWhenInjected()
+    public void GetSnapshotTreatsInjectedPendingDecisionAsStaleState()
     {
         using var temp = new TempDirectory();
         var paths = IconLibraryPaths.FromRoots(temp.PathFor("user"), temp.PathFor("appdata")).Value!;
@@ -75,7 +75,9 @@ public sealed class SetupReadinessServiceTests
         Assert.True(snapshot.Succeeded, snapshot.Error.Message);
         Assert.NotNull(snapshot.Value);
         Assert.Equal(ShellIntegrationReadiness.DecisionPending, snapshot.Value.ShellIntegration);
-        Assert.Contains(snapshot.Value.Actions, action => action.Id == "resolve-shell-integration");
+        var action = Assert.Single(snapshot.Value.Actions, action => action.Id == "resolve-shell-integration");
+        Assert.Contains("Refresh", action.Title, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("predates", action.Detail, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

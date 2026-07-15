@@ -9,20 +9,27 @@
     Title="Icon Replacer"
     mc:Ignorable="d">
     <Window.SystemBackdrop>
-        <MicaBackdrop />
+        <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid x:Name="WindowRoot">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="Icon Replacer">
-            <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
-            </TitleBar.IconSource>
-        </TitleBar>
-        <Frame x:Name="RootFrame" Grid.Row="1" />
+        <TitleBar x:Name="AppTitleBar" Title="Icon Replacer" />
+        <Grid Grid.Row="1">
+            <ProgressRing
+                x:Name="StartupProgress"
+                Width="36"
+                Height="36"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                AutomationProperties.AutomationId="StartupProgress"
+                AutomationProperties.Name="Loading Icon Replacer"
+                IsActive="True" />
+            <Frame x:Name="RootFrame" />
+        </Grid>
     </Grid>
 </Window>

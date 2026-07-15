@@ -24,7 +24,7 @@ public sealed class ShellSelectionService
                 ShellSelectionStatus.NoSelection,
                 new IconReplacerError(
                     ErrorCode.InvalidArgument,
-                    "Select one folder or .lnk shortcut to change its icon.")));
+                    "Select one local folder, directory link, or .lnk shortcut to change its icon.")));
         }
 
         if (selection.Count > 1)
@@ -80,12 +80,7 @@ public sealed class ShellSelectionService
 
         if (item.IsDirectory is true)
         {
-            if (!Directory.Exists(fullPath))
-            {
-                return MissingTarget(fullPath);
-            }
-
-            return EvaluateTarget(fullPath, isDirectory: true);
+            return EvaluateDirectory(fullPath);
         }
 
         if (item.IsDirectory is false)
@@ -100,7 +95,7 @@ public sealed class ShellSelectionService
 
         if (Directory.Exists(fullPath))
         {
-            return EvaluateTarget(fullPath, isDirectory: true);
+            return EvaluateDirectory(fullPath);
         }
 
         if (File.Exists(fullPath))
@@ -109,6 +104,25 @@ public sealed class ShellSelectionService
         }
 
         return MissingTarget(fullPath);
+    }
+
+    private static OperationResult<ShellSelectionEvaluation> EvaluateDirectory(string fullPath)
+    {
+        var validation = FileSystemPathPolicy.ValidateExistingLocalDirectory(fullPath);
+        if (validation.Succeeded && validation.Value is not null)
+        {
+            return EvaluateTarget(validation.Value, isDirectory: true);
+        }
+
+        var status = validation.Error.Code switch
+        {
+            ErrorCode.RemotePathUnsupported => ShellSelectionStatus.RemotePathUnsupported,
+            ErrorCode.PathNotFound => ShellSelectionStatus.MissingTarget,
+            ErrorCode.InvalidArgument => ShellSelectionStatus.InvalidPath,
+            _ => ShellSelectionStatus.UnsupportedTarget
+        };
+        return OperationResult<ShellSelectionEvaluation>.Success(
+            ShellSelectionEvaluation.Disabled(status, validation.Error, fullPath));
     }
 
     private static OperationResult<ShellSelectionEvaluation> EvaluateTarget(string fullPath, bool isDirectory)

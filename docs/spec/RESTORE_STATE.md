@@ -30,6 +30,13 @@ Each Restore Record should include:
 - Recent-change views classify each Restore Record with target availability, applied-icon availability, and whether restore is currently possible.
 - Restore preview views classify one Restore Record before mutation and expose the blocking reason or warning shown to the user.
 - Product restore rejects records that are not currently `Applied`; restored history remains visible but is not treated as actionable.
+- App and CommandHost reads and read-modify-write operations share one per-state-file interprocess lock.
+- Saves flush a unique same-directory temporary file before atomically replacing `state.json`, so readers never observe a partial JSON document.
+- Lock or replacement failure preserves the previous valid state file, removes temporary output when possible, and returns an actionable error.
+- If an apply reaches Target mutation before restore-state persistence fails, the product operation automatically restores the folder or shortcut while its Target lock is still held.
+- If that compensation also fails, the result is `PartialFailure` and preserves both the persistence and rollback causes for recovery.
+- If disk restore completes but the `Restored` status cannot be saved, the product operation reapplies the recorded icon so the Target remains consistent with the stored `Applied` record.
+- Failed reapply after a restore-state update failure reports both causes as `PartialFailure`.
 
 ## Non-Guarantees
 

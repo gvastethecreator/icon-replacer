@@ -37,7 +37,6 @@ public sealed record TargetItem(TargetKind Kind, string FullPath)
 
         return OperationResult<TargetItem>.Failure(new IconReplacerError(
             ErrorCode.UnsupportedTarget,
-            "Icon Replacer supports folders and .lnk shortcuts in V1."));
+            "Icon Replacer supports local folders, directory links, and .lnk shortcuts in V1."));
     }
 }
-

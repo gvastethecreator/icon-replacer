@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "CMake configure failed for IconReplacer.ShellExtension."
 }
 
-cmake --build $buildRoot --config $Configuration --target IconReplacer.ShellExtension | Out-Host
+cmake --build $buildRoot --config $Configuration --target IconReplacer.ShellExtension IconReplacer.ShellExtension.Smoke | Out-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Native shell extension build failed."
 }
@@ -35,6 +35,23 @@ if (-not (Test-Path -LiteralPath $builtDll)) {
 }
 
 Copy-Item -LiteralPath $builtDll -Destination (Join-Path $outputRoot "IconReplacer.ShellExtension.dll") -Force
+
+$appIconRoot = Join-Path $repoRoot "src\IconReplacer.App\Assets"
+$appIconNames = @("AppIcon.ico")
+$builtAssets = Join-Path $buildRoot "out\$Configuration\Assets"
+$outputAssets = Join-Path $outputRoot "Assets"
+New-Item -ItemType Directory -Force -Path $builtAssets, $outputAssets | Out-Null
+foreach ($appIconName in $appIconNames) {
+    $appIcon = Join-Path $appIconRoot $appIconName
+    Copy-Item -LiteralPath $appIcon -Destination (Join-Path $builtAssets $appIconName) -Force
+    Copy-Item -LiteralPath $appIcon -Destination (Join-Path $outputAssets $appIconName) -Force
+}
+
+$builtSmoke = Join-Path $buildRoot "out\$Configuration\IconReplacer.ShellExtension.Smoke.exe"
+if (-not (Test-Path -LiteralPath $builtSmoke)) {
+    throw "Native shell extension smoke executable was not produced at $builtSmoke."
+}
+Copy-Item -LiteralPath $builtSmoke -Destination (Join-Path $outputRoot "IconReplacer.ShellExtension.Smoke.exe") -Force
 
 $builtPdb = Join-Path $buildRoot "out\$Configuration\IconReplacer.ShellExtension.pdb"
 if (Test-Path -LiteralPath $builtPdb) {

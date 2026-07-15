@@ -41,6 +41,18 @@ public sealed class ShellSelectionServiceTests
         Assert.Equal(shortcut, result.Value.Target.FullPath);
     }
 
+    [WindowsOnlyFact]
+    public void EvaluatePathSupportsDirectorySymbolicLink()
+    {
+        AssertSupportsDirectoryLink(DirectoryLinkKind.SymbolicLink);
+    }
+
+    [WindowsOnlyFact]
+    public void EvaluatePathSupportsDirectoryJunction()
+    {
+        AssertSupportsDirectoryLink(DirectoryLinkKind.Junction);
+    }
+
     [Fact]
     public void EvaluatePathRejectsExistingUnsupportedFile()
     {
@@ -100,5 +112,31 @@ public sealed class ShellSelectionServiceTests
         Assert.Equal(ShellSelectionStatus.MissingTarget, result.Value.Status);
         Assert.False(result.Value.CanShowChangeIcon);
         Assert.Equal(ErrorCode.PathNotFound, result.Value.Error.Code);
+    }
+
+    private static void AssertSupportsDirectoryLink(DirectoryLinkKind kind)
+    {
+        using var temp = new TempDirectory();
+        var target = temp.PathFor("target");
+        var link = temp.PathFor(kind.ToString());
+        Directory.CreateDirectory(target);
+
+        try
+        {
+            ReparsePointTestHelper.CreateDirectoryLink(kind, link, target);
+
+            var result = new ShellSelectionService().EvaluatePath(link);
+
+            Assert.True(result.Succeeded, result.Error.Message);
+            Assert.NotNull(result.Value);
+            Assert.Equal(ShellSelectionStatus.Supported, result.Value.Status);
+            Assert.True(result.Value.CanShowChangeIcon);
+            Assert.Equal(TargetKind.Folder, result.Value.Target!.Kind);
+            Assert.Equal(link, result.Value.Target.FullPath);
+        }
+        finally
+        {
+            ReparsePointTestHelper.DeleteDirectoryLink(link);
+        }
     }
 }
