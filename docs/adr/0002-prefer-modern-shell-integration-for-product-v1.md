@@ -1,8 +1,14 @@
 # Prefer Modern Shell Integration For Product V1
 
-Status: accepted
+Status: superseded by ADR-0011
 
-Icon Replacer V1 will use package identity, MSIX registration, and a native `IExplorerCommand` extension for the real Windows 11 context-menu experience. Classic per-user registry verbs remain a prototype or fallback path, not the product V1 target.
+This ADR recorded the first accepted direction: package identity, MSIX registration,
+and a native `IExplorerCommand` extension for the Windows 11 context menu. It
+treated classic per-user registry verbs as a prototype or fallback.
+
+ADR-0011 supersedes that fallback model. V1 now packages both the modern and
+classic Explorer integrations in the same signed per-user MSIX and retires the
+raw `HKCU\Software\Classes` verb prototype.
 
 ## Considered Options
 

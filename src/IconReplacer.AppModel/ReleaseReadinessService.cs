@@ -4,7 +4,7 @@ namespace IconReplacer.AppModel;
 
 public sealed class ReleaseReadinessService
 {
-    public const string IntegrationPath = "Modern MSIX + IExplorerCommand";
+    public const string IntegrationPath = "Packaged Windows 11 + classic Explorer menus";
 
     private readonly PackagingPlanService _packagingPlanService;
     private readonly AccessibilityPlanService _accessibilityPlanService;

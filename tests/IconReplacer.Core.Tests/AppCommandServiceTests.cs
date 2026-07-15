@@ -138,7 +138,8 @@ public sealed class AppCommandServiceTests
         Assert.Contains(commands.Value.Commands, command =>
             command.Id == "choose-icon" &&
             !command.IsEnabled &&
-            command.Detail.Contains("folders and .lnk shortcuts", StringComparison.OrdinalIgnoreCase));
+            command.Detail.Contains("directory links", StringComparison.OrdinalIgnoreCase) &&
+            command.Detail.Contains(".lnk shortcuts", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

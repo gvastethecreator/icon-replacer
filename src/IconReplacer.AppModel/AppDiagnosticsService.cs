@@ -117,8 +117,8 @@ public sealed class AppDiagnosticsService
                 "Explorer integration is configured."),
             ShellIntegrationReadiness.DecisionPending => Warning(
                 "shell-integration",
-                "Shell integration decision pending",
-                "Resolve Modern MSIX/IExplorerCommand vs Classic HKCU before Explorer registration."),
+                "Shell integration state is stale",
+                "V1 already selected packaged modern and classic Explorer handlers; refresh setup state."),
             ShellIntegrationReadiness.NotConfigured => Warning(
                 "shell-integration",
                 "Shell integration not configured",

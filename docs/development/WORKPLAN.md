@@ -1,27 +1,40 @@
 # Development Workplan
 
-Status: proposed
-Date: 2026-07-07
+Status: in progress
+Date: 2026-07-14
 
 ## Mission Control
 
-Objective: develop Icon Replacer into a complete Windows app that can change and restore folder and `.lnk` shortcut icons from Explorer.
+Objective: develop Icon Replacer into a complete Windows app that can change and restore local folder, directory-link, and `.lnk` shortcut icons from Explorer.
 
-Current loop: IR-001 through IR-005 complete, IR-000 accepted as Modern Shell Integration, plus AppModel setup readiness with package-plan actions, release readiness, app-action requests, operation feedback, app navigation plan, app window startup state, app command state, app command request routing, route view composition, filtered icon-browser route content, icon-details route content, import route content, collections route content, change-icon route content, change-icon workflow state, restore workflow state, restore route view/command composition, shell-bridge route content, app locations and open-location requests, dashboard, catalog-warning snapshots, accessibility acceptance plan, WinUI-ready home, app-activation routing, activated post-picker change flow, activated direct menu-apply flow, icon-browser, icon-details, import-picker, picker-request, launch-request, change-preview, restore-preview, shell-integration plan, shell manifest contract, shell extension bridge, packaging/install plan, recent-change action, diagnostics, and batch-import snapshots, shell-selection evaluation, post-picker change orchestration, Icon Library import/status, collection management and collection import, filtered restore history, shared apply/restore operations, dynamic menu-snapshot foundations, empty/truncated/unavailable menu states, shell-menu command descriptors/invocation previews, direct dynamic-menu icon application, a packaged WinUI app shell connected to AppModel snapshots, and a native x64 `IExplorerCommand` DLL wired into the packaged app manifest.
+Current loop: core mutation, Gallery First management UI, packaged modern/classic
+Explorer integration, zero-window command execution, signed packaging, bounded
+preview-capable native menus, guarded install/uninstall, and an About/update
+surface are implemented. Release acceptance remains open for the explicitly
+approved manual Explorer matrix and current-candidate runtime accessibility
+evidence at 100%, 200%, and High Contrast.
 
-Highest-leverage next item: turn the native `IExplorerCommand` slice into installable package proof with signing/package identity, then add dynamic submenu enumeration and manual Explorer proof.
+Highest-leverage next item: after approval, run the accessibility UIA matrix and
+the guarded lifecycle against the exact current package, perform the visual
+Explorer matrix, verify coexistence with StartAllBack and the existing handlers,
+and return to the agreed final package state. The previous candidate is currently
+installed; `package-plan` keeps proof warnings open until the exact current
+candidate completes the transactional lifecycle and visual checks.
 
 Expected proof: package identity, signing, install/uninstall proof, dynamic submenu proof, and manual Explorer context-menu proof before Explorer registration is considered complete.
 
 WinUI/native preflight: .NET 10, WinUI templates, Developer Mode, `winapp` 0.4.0, CMake, and Visual Studio C++ Build Tools are available. Use `scripts\Initialize-NativeToolchain.ps1 -PassThru` when a native build shell needs `cl.exe` and MSBuild on PATH.
 
-Accepted decision: Modern Shell Integration with MSIX plus native `IExplorerCommand` for V1. Classic HKCU remains a fallback/prototype only.
+Accepted decision: packaged dual integration for V1. Native `IExplorerCommand` serves the Windows 11 menu, while `windows.fileExplorerClassicContextMenuHandler` serves `Show more options`; the raw Classic HKCU verb prototype is retired.
 
 ## Execution Gate
 
-Implementation may start on Core Engine, CLI, and tests before the shell decision is resolved.
-
-Do not register Explorer integration until the selected Modern package/native-extension path is built and verified.
+The shell decision is resolved by ADR-0011. Do not leave Explorer integration
+registered after automated proof, and do not begin a visual registration run
+without explicit approval. The lifecycle runner enforces that boundary with
+`-ApproveExplorerRegistration`; the manual matrix uses `-InteractiveProof` so
+registration, evidence capture, uninstall, and baseline verification remain one
+transactional session.
 
 ## Slices
 
@@ -51,7 +64,7 @@ Done. Unit tests cover valid, invalid, duplicate, and category scenarios.
 - Create Restore Records.
 - Restore previous folder state.
 
-Done. Temp-folder integration tests apply and restore folder icons while preserving unrelated `desktop.ini` keys.
+Done. Temp-folder integration tests apply and restore normal folders, local junctions, and local directory symbolic links while preserving unrelated `desktop.ini` keys and link identity. Restore history is serialized across the app and CommandHost and persisted with flushed atomic replacement; complete apply/restore transactions are serialized per canonical Target path, and persistence failures compensate both apply and restore mutations for folders and shortcuts.
 
 ### Slice 4: Shortcut Target Engine
 
@@ -72,11 +85,11 @@ Done. CLI proof applies and restores temporary folder and `.lnk` targets.
 
 ### Slice 6: Shell Integration
 
-- Create packaged WinUI app and native `IExplorerCommand` extension.
-- Keep Classic HKCU registry verbs as fallback/prototype only, with explicit fallback status if used.
+- Create one packaged WinUI app with modern `IExplorerCommand` and packaged classic context-menu handlers.
+- Do not create Classic HKCU registry verbs; package lifecycle owns both Explorer paths.
 - Use AppModel shell-manifest contract for the MSIX COM/context-menu entries before packaging.
 - Use AppModel shell-extension bridge snapshots so the future native `IExplorerCommand` can follow one tested manifest/menu/selection/argument contract.
-- Use AppModel shell-selection evaluation so `Change icon...` is enabled only for exactly one local folder or `.lnk`.
+- Use AppModel shell-selection evaluation so `Change icon...` is enabled only for exactly one local folder, directory link, or `.lnk`.
 - Use AppModel launch requests for the Explorer-to-app handoff instead of embedding argument construction in the native extension.
 - Use AppModel picker requests so `Change icon...` opens a single-select `.ico` picker rooted at the Icon Library.
 - Use AppModel change preview after the user picks an icon and before applying it, so target/icon readiness can be shown without mutation.
@@ -88,12 +101,16 @@ Done. CLI proof applies and restores temporary folder and `.lnk` targets.
 - Use AppModel direct menu apply so generated submenu entries can invoke one shared, validated mutation path.
 - Use AppModel `menu-apply` activation so the packaged app can consume direct submenu commands without duplicating shell logic.
 
-Done when right-click launches `Change icon...` for folder and `.lnk`.
+Implementation complete in source. The direct command launches only the native picker through `IconReplacer.CommandHost`; the collection submenu enumerates `%USERPROFILE%\.icons` dynamically and applies an icon without opening the management window. The classic handler groups both commands with a separator and application icons, eagerly attaches renderable 32-bit ARGB previews, and is capped at 8 collections/30 icons/242 command ids. Modern commands now hide during classic dispatch to prevent duplicate groups. Native COM smoke proves normal-modern/classic-hidden coexistence, every collection and icon preview, a 250 ms full-catalog query budget, and coexistence with an 8-id Explorer range. Replacing the installed previous candidate remains gated on the registry-preservation lifecycle check.
 
 ### Slice 7: WinUI App
 
-- Build compact management UI.
+- Build the selected Gallery First management UI from `docs/design/GALLERY_FIRST.md`.
+- Show real virtualized `.ico` previews in the gallery, collection mosaics, and history.
+- Cache one catalog snapshot per refresh and keep tooling probes out of navigation.
+- Support System, Light, Dark, High Contrast, Mica, and restrained Acrylic.
 - Add import, open library, refresh, recent changes, restore, and diagnostics.
+- Add About with official identity, version, project credits, GitHub links, and asynchronous latest-release detection.
 - Add accessibility basics.
 - Use AppModel change-icon workflow snapshots to drive picker, preview, and disabled target states.
 - Use AppModel app-view snapshots to compose selected route, commands, and route content for rendering.
@@ -139,7 +156,7 @@ Done when right-click launches `Change icon...` for folder and `.lnk`.
 - Use AppModel restore orchestration so WinUI updates disk state and restore history through one product operation.
 - Use AppModel menu snapshots to preview the same categories that shell integration will expose.
 
-Done when manual first-run path is clear and recoverable.
+Done in source. Library, Recent, Settings, and About are distinct; all visible previews are real `.ico` images; catalog/search/navigation/theme behavior is non-blocking; Light/Dark and Mica/Acrylic are implemented; About checks GitHub Releases only after navigation and reports update, current, no-release, timeout, and offline states. Gallery First UI Automation has a repeatable About pass, 287 automated tests cover the current source, and `design-qa.md` records a passing Gallery comparison. A 125% run against the previous installed candidate exposed one missing Settings accessible name plus a brittle UIA property read; both are corrected in source. Runtime proof of the current candidate at 100%, 200%, and High Contrast remains an explicit release gate.
 
 ### Slice 8: Packaging and Uninstall
 
@@ -166,5 +183,5 @@ Done when main path plus meaningful recovery path are green.
 - Missing WinUI or packaging prerequisites.
 - Need for admin/elevation in normal path.
 - Shell extension cannot be verified without destabilizing Explorer.
-- Restore proof fails for folder or `.lnk`.
+- Restore proof fails for a folder, local directory link, or `.lnk`.
 - User requires unsupported V1 features such as PNG conversion, `.url`, or network folders.

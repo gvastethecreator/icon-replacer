@@ -6,6 +6,7 @@ public sealed class IconRestoreService
 {
     private readonly FolderIconService _folderIconService;
     private readonly ShortcutIconService _shortcutIconService;
+    private readonly TargetMutationCoordinator _mutationCoordinator = new();
 
     public IconRestoreService(
         FolderIconService? folderIconService = null,
@@ -32,7 +33,31 @@ public sealed class IconRestoreService
                 recordId.ToString()));
         }
 
-        var restore = Restore(record.Value);
+        return _mutationCoordinator.Run(
+            record.Value.Target.FullPath,
+            () => RestoreFromStore(recordId, store, libraryPaths));
+    }
+
+    private OperationResult<IconRestoreResult> RestoreFromStore(
+        Guid recordId,
+        RestoreRecordStore store,
+        IconLibraryPaths libraryPaths)
+    {
+        var record = store.Get(recordId);
+        if (!record.Succeeded)
+        {
+            return OperationResult<IconRestoreResult>.Failure(record.Error);
+        }
+
+        if (record.Value is null)
+        {
+            return OperationResult<IconRestoreResult>.Failure(new IconReplacerError(
+                ErrorCode.PathNotFound,
+                "The restore record was not found.",
+                recordId.ToString()));
+        }
+
+        var restore = RestoreCore(record.Value);
         if (!restore.Succeeded || restore.Value is null)
         {
             return restore;
@@ -41,16 +66,65 @@ public sealed class IconRestoreService
         var save = store.Upsert(restore.Value.RestoreRecord);
         if (!save.Succeeded)
         {
-            return OperationResult<IconRestoreResult>.Failure(new IconReplacerError(
-                ErrorCode.PartialFailure,
-                "The icon was restored, but the restore state could not be updated.",
-                save.Error.Detail ?? save.Error.Message));
+            return PersistenceFailure(record.Value, libraryPaths, save.Error);
         }
 
         return restore;
     }
 
+    private OperationResult<IconRestoreResult> PersistenceFailure(
+        RestoreRecord appliedRecord,
+        IconLibraryPaths libraryPaths,
+        IconReplacerError saveError)
+    {
+        var reapply = ReapplyTarget(appliedRecord, libraryPaths);
+        if (reapply.Succeeded)
+        {
+            return OperationResult<IconRestoreResult>.Failure(new IconReplacerError(
+                saveError.Code,
+                "The restored status could not be recorded, so the applied icon was reapplied.",
+                saveError.Detail ?? saveError.Message));
+        }
+
+        return OperationResult<IconRestoreResult>.Failure(new IconReplacerError(
+            ErrorCode.PartialFailure,
+            "The icon was restored, but its status could not be saved and the applied icon could not be reapplied.",
+            $"Save failed: {saveError.Detail ?? saveError.Message} Reapply failed: {reapply.Error.Detail ?? reapply.Error.Message}"));
+    }
+
+    private OperationResult ReapplyTarget(
+        RestoreRecord appliedRecord,
+        IconLibraryPaths libraryPaths)
+    {
+        return appliedRecord.Target.Kind switch
+        {
+            TargetKind.Folder => ToOperationResult(_folderIconService.Apply(
+                appliedRecord.Target.FullPath,
+                appliedRecord.AppliedIconPath,
+                libraryPaths)),
+            TargetKind.Shortcut => ToOperationResult(_shortcutIconService.Apply(
+                appliedRecord.Target.FullPath,
+                appliedRecord.AppliedIconPath,
+                libraryPaths)),
+            _ => OperationResult.Failure(new IconReplacerError(
+                ErrorCode.UnsupportedTarget,
+                "The restored target type cannot be reapplied."))
+        };
+    }
+
+    private static OperationResult ToOperationResult<T>(OperationResult<T> result) =>
+        result.Succeeded
+            ? OperationResult.Success()
+            : OperationResult.Failure(result.Error);
+
     public OperationResult<IconRestoreResult> Restore(RestoreRecord restoreRecord)
+    {
+        return _mutationCoordinator.Run(
+            restoreRecord.Target.FullPath,
+            () => RestoreCore(restoreRecord));
+    }
+
+    private OperationResult<IconRestoreResult> RestoreCore(RestoreRecord restoreRecord)
     {
         if (restoreRecord.Status != RestoreRecordStatus.Applied)
         {
