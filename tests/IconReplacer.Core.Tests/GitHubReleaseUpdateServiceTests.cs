@@ -16,7 +16,9 @@ public sealed class GitHubReleaseUpdateServiceTests
             }
             """);
 
-        var result = await new GitHubReleaseUpdateService(client).CheckAsync(new Version(1, 0, 0, 0));
+        var result = await new GitHubReleaseUpdateService(client).CheckAsync(
+            new Version(1, 0, 0, 0),
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(AppUpdateStatus.UpdateAvailable, result.Status);
         Assert.Equal(new Version(1, 2, 0, 0), result.LatestVersion);
@@ -36,7 +38,9 @@ public sealed class GitHubReleaseUpdateServiceTests
             }
             """);
 
-        var result = await new GitHubReleaseUpdateService(client).CheckAsync(new Version(1, 0, 0, 0));
+        var result = await new GitHubReleaseUpdateService(client).CheckAsync(
+            new Version(1, 0, 0, 0),
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(AppUpdateStatus.UpToDate, result.Status);
         Assert.Equal(GitHubReleaseUpdateService.ReleasesUri, result.LatestReleaseUri);
@@ -47,7 +51,9 @@ public sealed class GitHubReleaseUpdateServiceTests
     {
         using var client = CreateClient(HttpStatusCode.NotFound, "{}");
 
-        var result = await new GitHubReleaseUpdateService(client).CheckAsync(new Version(1, 0, 0, 0));
+        var result = await new GitHubReleaseUpdateService(client).CheckAsync(
+            new Version(1, 0, 0, 0),
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(AppUpdateStatus.NoPublishedRelease, result.Status);
         Assert.Null(result.LatestVersion);
@@ -59,7 +65,9 @@ public sealed class GitHubReleaseUpdateServiceTests
     {
         using var client = CreateClient(HttpStatusCode.OK, """{"tag_name": 100}""");
 
-        var result = await new GitHubReleaseUpdateService(client).CheckAsync(new Version(1, 0, 0, 0));
+        var result = await new GitHubReleaseUpdateService(client).CheckAsync(
+            new Version(1, 0, 0, 0),
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(AppUpdateStatus.Unavailable, result.Status);
         Assert.Contains("unsupported version tag", result.Message, StringComparison.Ordinal);

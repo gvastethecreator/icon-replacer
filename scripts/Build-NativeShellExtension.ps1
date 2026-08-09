@@ -13,6 +13,17 @@ $repoRoot = Split-Path -Parent $scriptRoot
 $sourceRoot = Join-Path $repoRoot "src\IconReplacer.ShellExtension"
 $buildRoot = Join-Path $repoRoot "artifacts\native\build\$Platform\$Configuration"
 $outputRoot = Join-Path $repoRoot "artifacts\native\$Platform\$Configuration"
+$cmakeCache = Join-Path $buildRoot "CMakeCache.txt"
+
+if (Test-Path -LiteralPath $cmakeCache) {
+    $cachedSourceLine = Select-String -LiteralPath $cmakeCache -Pattern '^CMAKE_HOME_DIRECTORY:INTERNAL=(.+)$'
+    $cachedSource = $cachedSourceLine.Matches.Groups[1].Value
+    $expectedSource = [System.IO.Path]::GetFullPath($sourceRoot).Replace('\', '/')
+    if ($cachedSource -and -not $cachedSource.Equals($expectedSource, [StringComparison]::OrdinalIgnoreCase)) {
+        Write-Host "Removing a CMake cache created for another checkout: $cachedSource"
+        Remove-Item -LiteralPath $buildRoot -Recurse -Force
+    }
+}
 
 & (Join-Path $scriptRoot "Initialize-NativeToolchain.ps1") -Arch $Platform | Out-Host
 

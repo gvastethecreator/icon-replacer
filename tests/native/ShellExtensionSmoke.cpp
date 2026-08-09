@@ -399,6 +399,78 @@ bool MenuCommandIdsWithinRange(HMENU menu, UINT firstCommandId, UINT lastCommand
     return true;
 }
 
+class SmokeLibraryFixture
+{
+public:
+    ~SmokeLibraryFixture()
+    {
+        if (!iconPath_.empty())
+        {
+            DeleteFileW(iconPath_.c_str());
+        }
+        if (!collectionPath_.empty())
+        {
+            RemoveDirectoryW(collectionPath_.c_str());
+        }
+        if (createdLibraryRoot_ && !libraryRoot_.empty())
+        {
+            RemoveDirectoryW(libraryRoot_.c_str());
+        }
+    }
+
+    HRESULT Create(const std::wstring& sourceIcon)
+    {
+        PWSTR profilePath = nullptr;
+        auto result = SHGetKnownFolderPath(FOLDERID_Profile, KF_FLAG_DEFAULT, nullptr, &profilePath);
+        if (FAILED(result))
+        {
+            return result;
+        }
+
+        libraryRoot_ = std::wstring(profilePath) + L"\\.icons";
+        CoTaskMemFree(profilePath);
+        if (!CreateDirectoryW(libraryRoot_.c_str(), nullptr))
+        {
+            const auto error = GetLastError();
+            if (error != ERROR_ALREADY_EXISTS)
+            {
+                return HRESULT_FROM_WIN32(error);
+            }
+        }
+        else
+        {
+            createdLibraryRoot_ = true;
+        }
+
+        collectionPath_ = libraryRoot_ + L"\\.icon-replacer-smoke-" +
+            std::to_wstring(GetCurrentProcessId());
+        if (!CreateDirectoryW(collectionPath_.c_str(), nullptr) &&
+            GetLastError() != ERROR_ALREADY_EXISTS)
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        iconPath_ = collectionPath_ + L"\\Smoke.ico";
+        if (!CopyFileW(sourceIcon.c_str(), iconPath_.c_str(), FALSE))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        return S_OK;
+    }
+
+    const std::wstring& LibraryRoot() const
+    {
+        return libraryRoot_;
+    }
+
+private:
+    std::wstring libraryRoot_;
+    std::wstring collectionPath_;
+    std::wstring iconPath_;
+    bool createdLibraryRoot_ = false;
+};
+
 HRESULT CreateSmokeShortcut(
     const std::wstring& targetPath,
     std::wstring& shortcutPath,
@@ -501,6 +573,14 @@ int wmain(int argumentCount, wchar_t** arguments)
         return Fail(L"Direct command contract is invalid", result);
     }
     direct->Release();
+
+    SmokeLibraryFixture libraryFixture;
+    result = libraryFixture.Create(directIcon);
+    if (FAILED(result))
+    {
+        FreeLibrary(library);
+        return Fail(L"Isolated icon-library fixture could not be created", result);
+    }
 
     IExplorerCommand* root = nullptr;
     result = CreateCommand(getClassObject, CLSID_Collections, &root);
@@ -606,18 +686,7 @@ int wmain(int argumentCount, wchar_t** arguments)
         return Fail(L"Classic handler does not expose IContextMenu", result);
     }
 
-    wchar_t profilePath[32768]{};
-    if (GetEnvironmentVariableW(
-            L"USERPROFILE",
-            profilePath,
-            static_cast<DWORD>(std::size(profilePath))) == 0)
-    {
-        classicMenu->Release();
-        classicInitializer->Release();
-        return Fail(L"USERPROFILE could not be resolved");
-    }
-
-    const std::wstring libraryPath = std::wstring(profilePath) + L"\\.icons";
+    const auto& libraryPath = libraryFixture.LibraryRoot();
     IDataObject* selection = nullptr;
     result = CreateSelectionDataObject(libraryPath, &selection);
     if (FAILED(result) || selection == nullptr)
