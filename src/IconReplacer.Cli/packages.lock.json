@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "iconreplacer.appmodel": {
+        "type": "Project",
+        "dependencies": {
+          "IconReplacer.Core": "[1.0.0, )"
+        }
+      },
+      "iconreplacer.core": {
+        "type": "Project"
+      }
+    }
+  }
+}
