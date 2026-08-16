@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace IconReplacer.App;
+namespace IconReplacer.AppModel;
 
-internal static class NativeIconFileDialog
+public static class NativeIconFileDialog
 {
     private const int BufferCharCount = 65536;
     private const int OfnAllowMultiSelect = 0x00000200;

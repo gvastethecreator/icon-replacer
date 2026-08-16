@@ -18,7 +18,7 @@ public sealed record NativeToolingSnapshot(
         "Visual Studio MSBuild was not checked.",
         "CMake was not checked.");
 
-    public bool CanBuildNativeExtension => CompilerAvailable && MsBuildAvailable;
+    public bool CanBuildNativeExtension => CompilerAvailable && MsBuildAvailable && CMakeAvailable;
 
     public string Summary => IsChecked
         ? $"cl.exe: {Format(CompilerAvailable)}; MSBuild: {Format(MsBuildAvailable)}; CMake: {Format(CMakeAvailable)}."

@@ -3,5 +3,7 @@ namespace IconReplacer.AppModel;
 public enum ShellIntegrationMode
 {
     ModernMsixIExplorerCommand,
-    ClassicHkcuVerb
+    ClassicHkcuVerb,
+    PackagedDualExplorerCommands,
+    None
 }

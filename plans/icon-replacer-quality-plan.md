@@ -1,8 +1,10 @@
 # Icon Replacer Quality Plan
 
 Date: 2026-07-07
-Status: proposed
+Status: archived historical baseline
 Owner: current Codex thread
+
+Current execution and release gates live in [`VERIFICATION.md`](../docs/development/VERIFICATION.md) and [`MAINTENANCE_2026-08-09.md`](../docs/MAINTENANCE_2026-08-09.md).
 
 ## Goal
 
@@ -12,8 +14,8 @@ The product should feel like an Explorer feature first, and like a WinUI utility
 
 ## Current State
 
-- Workspace: `D:\DEV\icon-replacer`
-- Repo state: no Git repository detected.
+- Workspace: original local checkout; paths are repository-relative now.
+- Repo state at planning time: no Git repository detected.
 - Files before this plan: empty workspace.
 - This plan is the first durable task record.
 
@@ -276,4 +278,3 @@ Expected result: main path and at least one recovery path are green before claim
 - Product/UX favored Explorer-native feel and dynamic `.icons` library.
 
 Resolution: build the core engine first, then choose the shell integration level before scaffolding the final app. The recommended product direction is modern shell integration; the recommended risk-control tactic is to prove the icon mutation engine independently first.
-

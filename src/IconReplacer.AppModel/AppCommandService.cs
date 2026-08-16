@@ -275,7 +275,7 @@ public sealed class AppCommandService
                 "Choose icon",
                 window.Activation?.Kind == AppActivationKind.ChangeIcon
                     ? window.Error.Message
-                    : "Select one local folder or .lnk shortcut before changing its icon.");
+                    : "Select one local folder, directory link, or .lnk shortcut before changing its icon.");
 
         return new[]
         {

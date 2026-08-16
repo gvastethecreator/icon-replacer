@@ -117,4 +117,118 @@ public sealed class RestoreRecordStoreTests
         Assert.Equal(newer.Id, list.Value![0].Id);
         Assert.Equal(older.Id, list.Value![1].Id);
     }
+
+    [Fact]
+    public async Task ConcurrentStoresPreserveEveryRestoreRecord()
+    {
+        using var temp = new TempDirectory();
+        var stateFile = temp.PathFor("state", "state.json");
+        var records = Enumerable.Range(0, 64)
+            .Select(index => RestoreRecord.CreatePending(
+                new TargetItem(TargetKind.Shortcut, temp.PathFor("targets", $"target-{index}.lnk")),
+                temp.PathFor("icons", $"icon-{index}.ico"),
+                new ShortcutRestoreSnapshot(null, 0)) with
+            {
+                CreatedAt = DateTimeOffset.UtcNow.AddSeconds(index),
+                Status = RestoreRecordStatus.Applied
+            })
+            .ToArray();
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writes = records.Select(async record =>
+        {
+            await start.Task;
+            return new RestoreRecordStore(stateFile).Upsert(record);
+        }).ToArray();
+
+        start.SetResult();
+        var results = await Task.WhenAll(writes);
+        var stored = new RestoreRecordStore(stateFile).List();
+
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Error.Message));
+        Assert.True(stored.Succeeded, stored.Error.Message);
+        Assert.Equal(
+            records.Select(record => record.Id).Order(),
+            stored.Value!.Select(record => record.Id).Order());
+    }
+
+    [Fact]
+    public async Task ConcurrentReadersAlwaysReceiveValidRestoreState()
+    {
+        using var temp = new TempDirectory();
+        var stateFile = temp.PathFor("state", "state.json");
+        var seed = RestoreRecord.CreatePending(
+            new TargetItem(TargetKind.Shortcut, temp.PathFor("targets", "seed.lnk")),
+            temp.PathFor("icons", "seed.ico"),
+            new ShortcutRestoreSnapshot(null, 0)) with
+        {
+            Status = RestoreRecordStatus.Applied
+        };
+        Assert.True(new RestoreRecordStore(stateFile).Upsert(seed).Succeeded);
+
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writes = Enumerable.Range(0, 32).Select(async index =>
+        {
+            await start.Task;
+            var record = RestoreRecord.CreatePending(
+                new TargetItem(TargetKind.Shortcut, temp.PathFor("targets", $"target-{index}.lnk")),
+                temp.PathFor("icons", $"icon-{index}.ico"),
+                new ShortcutRestoreSnapshot(null, 0)) with
+            {
+                Status = RestoreRecordStatus.Applied
+            };
+            return new RestoreRecordStore(stateFile).Upsert(record);
+        }).ToArray();
+        var reads = Enumerable.Range(0, 32).Select(async _ =>
+        {
+            await start.Task;
+            return new RestoreRecordStore(stateFile).List();
+        }).ToArray();
+
+        start.SetResult();
+        var writeResults = await Task.WhenAll(writes);
+        var readResults = await Task.WhenAll(reads);
+
+        Assert.All(writeResults, result => Assert.True(result.Succeeded, result.Error.Message));
+        Assert.All(readResults, result =>
+        {
+            Assert.True(result.Succeeded, result.Error.Message);
+            Assert.NotNull(result.Value);
+            Assert.Contains(result.Value, record => record.Id == seed.Id);
+        });
+    }
+
+    [Fact]
+    public void FailedReplacementPreservesLastValidStateAndCleansTemporaryFile()
+    {
+        using var temp = new TempDirectory();
+        var stateDirectory = temp.PathFor("state");
+        var stateFile = Path.Combine(stateDirectory, "state.json");
+        var seed = RestoreRecord.CreatePending(
+            new TargetItem(TargetKind.Shortcut, temp.PathFor("targets", "seed.lnk")),
+            temp.PathFor("icons", "seed.ico"),
+            new ShortcutRestoreSnapshot(null, 0)) with
+        {
+            Status = RestoreRecordStatus.Applied
+        };
+        var store = new RestoreRecordStore(stateFile);
+        Assert.True(store.Upsert(seed).Succeeded);
+
+        OperationResult save;
+        using (File.Open(stateFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            var next = RestoreRecord.CreatePending(
+                new TargetItem(TargetKind.Shortcut, temp.PathFor("targets", "next.lnk")),
+                temp.PathFor("icons", "next.ico"),
+                new ShortcutRestoreSnapshot(null, 0));
+            save = store.Upsert(next);
+        }
+
+        var stored = store.List();
+
+        Assert.False(save.Succeeded);
+        Assert.Contains("could not be saved", save.Error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(stored.Succeeded, stored.Error.Message);
+        Assert.Collection(stored.Value!, record => Assert.Equal(seed.Id, record.Id));
+        Assert.Empty(Directory.EnumerateFiles(stateDirectory, "state.json.*.tmp"));
+    }
 }

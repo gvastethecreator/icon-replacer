@@ -6,7 +6,7 @@ internal static class ToolingProbe
 {
     public static PackagingPlanInputs GetPackagingInputs()
     {
-        return PackagingPlanInputs.FromTooling(DetectWinUiTooling(), DetectNativeTooling()) with
+        return PackagingPlanInputs.FromTooling(DetectWinUiTooling(), NativeToolingDetector.Detect()) with
         {
             NativeShellExtensionBuilt = NativeShellExtensionExists()
         };
@@ -27,22 +27,6 @@ internal static class ToolingProbe
             winAppPath is not null
                 ? $"winapp CLI is available ({winAppPath})."
                 : "winapp CLI was not found.");
-    }
-
-    private static NativeToolingSnapshot DetectNativeTooling()
-    {
-        var compilerPath = FindOnPath("cl.exe") ?? FindVisualStudioTool("cl.exe", "Hostx64", "x64");
-        var msBuildPath = FindOnPath("msbuild.exe") ?? FindVisualStudioTool("MSBuild.exe", "MSBuild", "Current");
-        var cmakePath = FindOnPath("cmake.exe");
-
-        return new NativeToolingSnapshot(
-            IsChecked: true,
-            compilerPath is not null,
-            msBuildPath is not null,
-            cmakePath is not null,
-            compilerPath is not null ? $"cl.exe is available ({compilerPath})." : "cl.exe was not found.",
-            msBuildPath is not null ? $"MSBuild is available ({msBuildPath})." : "MSBuild was not found.",
-            cmakePath is not null ? $"CMake is available ({cmakePath})." : "CMake was not found.");
     }
 
     private static string? FindOnPath(string fileName)
@@ -71,43 +55,6 @@ internal static class ToolingProbe
         return string.IsNullOrWhiteSpace(localAppData)
             ? null
             : Existing(Path.Combine(localAppData, "Microsoft", "WindowsApps", fileName));
-    }
-
-    private static string? FindVisualStudioTool(
-        string fileName,
-        string preferredSegment,
-        string secondaryPreferredSegment)
-    {
-        var installationPath = FindVisualStudioInstallationPath();
-        if (installationPath is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return Directory
-                .EnumerateFiles(installationPath, fileName, SearchOption.AllDirectories)
-                .OrderByDescending(path => path.Contains(preferredSegment, StringComparison.OrdinalIgnoreCase))
-                .ThenByDescending(path => path.Contains(secondaryPreferredSegment, StringComparison.OrdinalIgnoreCase))
-                .FirstOrDefault();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
-
-    private static string? FindVisualStudioInstallationPath()
-    {
-        var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-        var candidates = new[]
-        {
-            Path.Combine(programFilesX86, "Microsoft Visual Studio", "2022", "BuildTools"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Visual Studio", "18", "Community")
-        };
-
-        return candidates.FirstOrDefault(Directory.Exists);
     }
 
     private static string? Existing(string path)

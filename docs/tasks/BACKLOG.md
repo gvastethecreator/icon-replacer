@@ -24,6 +24,7 @@ Goal: apply and restore folder icons safely.
 - IR-003.3: Restore previous folder icon state.
 - IR-003.4: Test existing `desktop.ini` preservation.
 - IR-003.5: Test protected and unsupported folder failures.
+- IR-003.6: Support local directory junctions/symbolic links and reject remote link targets.
 
 ### EPIC-SHORTCUT: Shortcut Target Support
 
@@ -51,7 +52,7 @@ Goal: make behavior testable before shell UI exists.
 
 Goal: expose `Change icon` from File Explorer.
 
-- IR-000: Confirm Modern vs Classic V1 integration decision.
+- IR-000: Confirm packaged modern/classic V1 integration decision.
 - IR-006: Shell integration spike according to IR-000.
 - IR-006.1: Add `Change icon...` path.
 - Pre-IR-006.1: Shared post-picker change workflow before Explorer registration.
@@ -81,6 +82,7 @@ Goal: provide setup, library management, recent changes, restore, and diagnostic
 - IR-008.4: Recent changes and restore.
 - IR-008.5: Diagnostics and error details.
 - IR-008.6: Accessibility and high contrast pass.
+- IR-008.7: About, project credits, GitHub links, and update detection.
 - Pre-IR-008.1: Restore-history health model for future recent-changes UI.
 - Pre-IR-008.2: Shared apply orchestration for CLI, WinUI, and shell entry points.
 - Pre-IR-008.3: Shared restore orchestration for recent-changes UI and CLI.
@@ -151,21 +153,26 @@ Goal: prevent happy-path-only completion.
 
 ## First Task
 
-IR-001 through IR-005 are complete. IR-000 is now accepted as Modern Shell Integration. Continue with Modern-path implementation prerequisites before IR-006 registration.
+IR-001 through IR-005 are complete. IR-000 is accepted as packaged dual
+Explorer integration. Continue the explicitly approved manual Explorer matrix
+before closing IR-006.1 and IR-010.4.
 
 ## Order
 
 IR-001 -> IR-002 -> IR-003 and IR-004 -> IR-005 -> IR-000 decision gate -> IR-006 -> IR-007 -> IR-008 -> IR-009 -> IR-010.
 
-IR-000 is complete. Final shell architecture is Modern MSIX plus native `IExplorerCommand`; Explorer registration remains blocked until the selected path is built and verified.
+IR-000 is complete. Final shell architecture is one MSIX with native modern and
+classic handlers. Automated lifecycle proof leaves Explorer registration
+removed; visual registration remains approval-gated.
 
 ## Status
 
 | ID | Status | Evidence |
 | --- | --- | --- |
 | IR-001 | done | Solution contains `IconReplacer.Core`, `IconReplacer.Cli`, and `IconReplacer.Core.Tests`; build/test run green. |
-| IR-002 | done | `.ico` validation, catalog scan, import/dedupe, and 542-icon real catalog proof are green. |
-| IR-003 | done | Folder apply/restore engine has tests for new and existing `desktop.ini`, attributes, restore, and missing-folder failure. |
+| IR-002 | done | `.ico` validation, catalog scan, import/dedupe, and the current 185-icon real catalog proof are green. |
+| IR-003B | done | Restore history uses per-file interprocess serialization plus flushed atomic replacement; app/CommandHost mutations serialize per Target, apply/restore persistence failures compensate folder/shortcut state, and concurrency/failure tests preserve a fully restorable chain. |
+| IR-003 | done | Folder apply/restore covers new/existing `desktop.ini`, attributes, missing targets, local junctions/symbolic links, link-preserving restore, and remote-link rejection. |
 | IR-004 | done | `.lnk` apply/restore tests prove icon path/index mutation and metadata preservation. |
 | IR-005 | done | CLI `catalog`, `doctor`, `history`, `apply-folder`, `apply-shortcut`, and `restore` are implemented; temporary folder and `.lnk` proof passed. |
 | Pre-IR-006 | done | `ShellSelectionService` validates single local folder/`.lnk` selections, blocks unsupported selections, and powers CLI `target`/`selection`. |
@@ -207,7 +214,7 @@ IR-000 is complete. Final shell architecture is Modern MSIX plus native `IExplor
 | Pre-IR-008.29 | done | `AppChangeIconWorkflowService` exposes picker, preview, apply, and blocked states for Explorer-launched Change Icon; CLI `change-icon-workflow` previews the non-mutating workflow. |
 | Pre-IR-008.30 | done | `AppRestoreWorkflowService` exposes history, selected-record preview, ready-to-restore, need-selection, and blocked states; CLI `restore-workflow` previews the non-mutating workflow. |
 | Pre-IR-008.31 | done | `AppRouteViewService` and `AppCommandService` compose the restore workflow into `restore-preview` route content and commands; CLI `app-view`/`app-commands` preview no-selection and selected-record states. |
-| Pre-IR-008.32 | done | `AppRouteViewService` composes one-level Icon Library collections into the `collections` route; CLI `app-view --route collections` previews 19 folders and 542 icons. |
+| Pre-IR-008.32 | done | `AppRouteViewService` composes one-level Icon Library collections into the `collections` route; the current curated proof catalog has 7 folders and 185 icons. |
 | Pre-IR-008.33 | done | `AppRouteViewService` and `AppCommandService` compose Explorer-launched `change-icon` workflow content and choose/preview/apply commands; CLI `app-view --icon ... change-icon ...` previews `NeedIcon` and `ReadyToApply` without mutation. |
 | Pre-IR-008.34 | done | `AppRouteViewService` composes `import-icons` picker destination content; CLI `app-view --route import-icons [--collection <name>]` previews Imported or collection targets without copying icons. |
 | Pre-IR-008.35 | done | `AppRouteViewService` and `AppCommandService` compose `icon-details` metadata and selected-icon commands; CLI `app-view --route icon-details --icon <icon.ico>` previews details without mutation. |
@@ -220,16 +227,18 @@ IR-000 is complete. Final shell architecture is Modern MSIX plus native `IExplor
 | IR-008.0 | done | `IconReplacer.App` is a packaged WinUI app shell connected to AppModel snapshots; `BuildAndRun.ps1 src\IconReplacer.App\IconReplacer.App.csproj -Detach` launched it through `winapp` with AUMID `IconReplacer_2wx6x5nenbha0!IconReplacer.App`. |
 | IR-008.1 | done | First-run setup and integration status are visible through Home, Diagnostics, Package, and inline `InfoBar` state; WinUI setup was revalidated with `.NET 10.0.300`, refreshed templates, Developer Mode enabled, `winapp 0.4.0`, and native toolchain available. |
 | IR-008.2 | done | WinUI `Import` opens a native Windows `.ico` file dialog through the app HWND and imports multi-select results into `.icons\Imported`; UIA proof finds `ImportIconsButton`, and final manual selection proof remains part of Windows interaction evidence. |
-| IR-008.3 | done | WinUI catalog browser and Refresh are backed by `AppRouteViewService` snapshots; the running app shows catalog metrics and browser rows from the real 542-icon library. |
+| IR-008.3 | done | WinUI catalog browser and Refresh are backed by `AppRouteViewService` snapshots; the current curated library has 185 icons. |
 | IR-008.4 | done | WinUI Home/History rows expose `Restore` actions; non-restorable records are disabled with status text, and restorable records call `IconRestoreService.Restore` then refresh History. |
-| IR-006.1 | in-progress | Native x64 `IExplorerCommand` DLL builds, exports `DllGetClassObject`/`DllCanUnloadNow`, is copied into the packaged app, and pending `change-icon` activation opens the modal `Change icon` file dialog. Final Explorer registration, dynamic submenu, package identity, signing, install/uninstall proof, and manual Explorer proof remain open. |
-| Pre-IR-007 | done | `IconMenuService` builds bounded `Change icon...` menu snapshots from `.icons`; CLI `menu` previews the real catalog as 19 categories and 542 icons. |
+| IR-008.7 | done | About is implemented with rounded high-resolution theme identity, installed version, project credits, GitHub/release links, and an 8-second GitHub Releases check. Unit/source/build and installed runtime UIA proof pass. |
+| IR-006.1 | in-progress | Native modern/classic Explorer integration and zero-window command host are implemented. Installed `1.0.0.5` proves one grouped command pair, direct picker launch, preserved unrelated entries, and callback-rendered collection/icon previews in native smoke; the final Explorer submenu screenshot and remaining target matrix stay open. |
+| Pre-IR-007 | done | `IconMenuService` builds bounded `Change icon...` menu snapshots from `.icons`; CLI `menu` previews the current real catalog as 7 categories and 185 icons. |
 | IR-007.1 | done | `IconMenuState` and command fallbacks cover empty, truncated, warning, and unavailable catalog states without dropping `Change icon...`. |
 | Pre-IR-007.1 | done | `IconMenuApplyService` applies only current Icon Library catalog icons from the dynamic menu path; CLI `menu-apply` changed and restored a temporary folder target. |
 | Pre-IR-007.2 | done | `IconMenuCommandService` turns menu snapshots into stable shell-facing command descriptors; CLI `menu-commands` previews command ids and argument templates. |
 | Pre-IR-007.3 | done | `IconMenuCommandInvocationService` resolves menu command ids against selected targets without mutation; CLI `menu-invoke-preview` previews final arguments and disabled reasons. |
 | Pre-IR-007.4 | done | `AppMenuApplyActivationService` and `ActivatedMenuApplyService` let the packaged app preview and apply `menu-apply <target> <icon>` activations through the same validated submenu path; CLI `activate menu-apply ...` and `activate-menu-apply` prove it before Explorer registration. |
-| IR-000 | done | ADR-0002 is accepted: V1 uses Modern MSIX plus native `IExplorerCommand`; Classic HKCU remains fallback/prototype only. CLI `shell-plan` reports the selected path and current prerequisites. |
+| IR-000 | done | ADR-0011 supersedes ADR-0002: V1 packages native modern and classic Explorer handlers together, and raw HKCU verbs are retired. CLI `shell-plan` reports the selected path and current prerequisites. |
 | Pre-IR-009 | done | `PackagingPlanService` exposes install/uninstall gates and user-data preservation policy; CLI `package-plan` previews current blockers without installing anything. |
 | Pre-IR-009.1 | done | `NativeToolingSnapshot` and `PackagingPlanService` surface the native shell-extension build-tooling gate; CLI `package-plan` reports native tooling and now passes the native shell-extension-built gate when `artifacts\native\x64\Debug\IconReplacer.ShellExtension.dll` exists. |
+| IR-009 | in-progress | Package filenames derive from the manifest identity; signed candidate `1.0.0.5` was installed through the explicitly approved `UpgradeInstalledPackage + KeepInstalled` path. Exact-package install, Explorer reload, Icon Library preservation, restore-state preservation, and unrelated-handler preservation pass; clean uninstall proof remains open. |
 | Pre-IR-010 | done | `ReleaseReadinessService` composes build/test/CLI proof, diagnostics, package, accessibility, manual Explorer, and release-evidence gates; CLI `release-readiness` previews why release is currently blocked. |

@@ -6,6 +6,9 @@
     <RootNamespace>IconReplacer.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
     <PublishProfile Condition="Exists('Properties\PublishProfiles\win-$(Platform).pubxml')">win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
@@ -17,6 +20,9 @@
     <NativeShellExtensionPlatform Condition="'$(NativeShellExtensionPlatform)' == ''">$(Platform)</NativeShellExtensionPlatform>
     <BuildNativeShellExtension Condition="'$(BuildNativeShellExtension)' == '' and '$(NativeShellExtensionPlatform)' == 'x64'">true</BuildNativeShellExtension>
     <NativeShellExtensionDll>$(MSBuildThisFileDirectory)..\..\artifacts\native\$(NativeShellExtensionPlatform)\$(Configuration)\IconReplacer.ShellExtension.dll</NativeShellExtensionDll>
+    <CommandHostTargetFramework>net10.0-windows10.0.26100.0</CommandHostTargetFramework>
+    <CommandHostPlatformSegment Condition="'$(Platform)' == 'x64' or '$(Platform)' == 'ARM64'">$(Platform)\</CommandHostPlatformSegment>
+    <CommandHostOutputDir>$(MSBuildThisFileDirectory)..\IconReplacer.CommandHost\bin\$(CommandHostPlatformSegment)$(Configuration)\$(CommandHostTargetFramework)\$(RuntimeIdentifier)</CommandHostOutputDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +34,26 @@
     <Content Include="Assets\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\AppIcon.ico" />
+    <Content Include="Assets\AppIcon.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-lightunplated.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-48_altform-unplated.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="$(CommandHostOutputDir)\IconReplacer.CommandHost.exe"
+             Link="IconReplacer.CommandHost.exe"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(CommandHostOutputDir)\IconReplacer.CommandHost.dll"
+             Link="IconReplacer.CommandHost.dll"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(CommandHostOutputDir)\IconReplacer.CommandHost.deps.json"
+             Link="IconReplacer.CommandHost.deps.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(CommandHostOutputDir)\IconReplacer.CommandHost.runtimeconfig.json"
+             Link="IconReplacer.CommandHost.runtimeconfig.json"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(NativeShellExtensionDll)"
              Link="IconReplacer.ShellExtension.dll"
              CopyToOutputDirectory="PreserveNewest"
@@ -59,11 +84,20 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\IconReplacer.AppModel\IconReplacer.AppModel.csproj" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2270" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.4.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.6.0" />
   </ItemGroup>
+
+  <Target Name="BuildCommandHost"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(BuildingSolutionFile)' != 'true'">
+    <MSBuild
+      Projects="$(MSBuildThisFileDirectory)..\IconReplacer.CommandHost\IconReplacer.CommandHost.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier)" />
+  </Target>
 
   <Target Name="BuildNativeShellExtension"
           BeforeTargets="PrepareForBuild"
@@ -84,7 +118,6 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 </Project>

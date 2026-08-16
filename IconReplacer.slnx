@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/IconReplacer.CommandHost/IconReplacer.CommandHost.csproj" />
     <Project Path="src/IconReplacer.AppModel/IconReplacer.AppModel.csproj" />
     <Project Path="src/IconReplacer.App/IconReplacer.App.csproj" />
     <Project Path="src/IconReplacer.Cli/IconReplacer.Cli.csproj" />

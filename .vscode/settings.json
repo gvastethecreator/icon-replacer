@@ -1,6 +1,6 @@
 {
     "projectColors.mainColor": "#81cc0f",
-    "window.title": "d:\\DEV\\icon-replacer",
+    "window.title": "${rootName}",
     "workbench.colorCustomizations": {
         "[Bearded Theme Black & Gold]": {},
         "statusBarItem.warningBackground": "#81cc0f",

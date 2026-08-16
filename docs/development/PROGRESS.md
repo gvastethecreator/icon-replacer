@@ -4,6 +4,28 @@ Date: 2026-07-08
 
 ## Completed
 
+### 2026-07-15 GitHub Release Candidate Preparation
+
+- Prepared GitHub prerelease `v1.0.0-rc.1` with MSIX package version `1.0.0.6`.
+- Added a user-focused README, changelog, release notes, download/install guide,
+  and a reproducible public bundle script.
+- Kept the stable-release claim closed while clean uninstall, the remaining
+  Explorer matrix, and 200%/High Contrast accessibility proof remain open.
+- Kept source licensing unresolved and excluded the PFX/private key from all
+  public artifacts.
+
+Proof:
+
+- Release .NET suite: 289/289 passed.
+- WinUI/native/package Release build: pass.
+- Native Explorer smoke: pass, 187 commands, constrained 8-command range,
+  complete direct/collection/icon previews, 78.1 ms query.
+- Signed x64 MSIX: `IconReplacer_1.0.0.6_x64.msix`, 47,991,336 bytes,
+  valid `CN=IconReplacerDev` signature, SHA-256
+  `5D22F3D823924B876A7B5C687595FAB4F4813783CDE51E03C1FF48E621563563`.
+- Public bundle verification: all listed hashes match; certificate thumbprint
+  `F235B1142A11E383C0673599772334C0F0797F4A`; no PFX is present.
+
 ### IR-001: Bootstrap Repo + Core/CLI/Test Harness
 
 - Created `IconReplacer.slnx`.
@@ -53,20 +75,8 @@ Created curated local collections under `C:\Users\cristian\.icons`, copied from 
 - `Media Audio Video`
 - `System Utilities`
 - `Gaming Hardware`
-- `Test - Adobe Creative`
-- `Test - Design and 3D`
-- `Test - Developer Stack`
-- `Test - Gaming Platforms`
-- `Test - Media Studio`
-- `Test - System and Office`
-- `Folder11 - Adobe Creative Suite`
-- `Folder11 - Design and 3D Studio`
-- `Folder11 - Developer Web Stack`
-- `Folder11 - Games and Platforms`
-- `Folder11 - Media Streaming Studio`
-- `Folder11 - System Office Utilities`
 
-CLI catalog proof now reports 19 categories including `Imported` and 542 icons after the curated test collections were added.
+CLI catalog proof now reports 7 categories including `Imported` and 185 icons. Twelve duplicate collections created during earlier test passes were moved intact to `artifacts\icon-library-archive\20260713-192200`.
 
 ### IR-004: Shortcut `.lnk` Apply/Restore Engine
 
@@ -353,17 +363,17 @@ Proof:
 - CLI `apply <target> <icon.ico>` applied and restored a temporary folder target; after restore, `desktop.ini` no longer exists.
 - CLI `restore <record-id>` now runs through `IconRestoreService`; latest proof restored `7cde5348-3ada-4448-be43-11f740927a63` and removed `desktop.ini`.
 - CLI `import <icon.ico> [display-name]` now imports through `IconLibraryService`; real proof re-imported `adobe.ico` with a different display name and returned existing `adobe-535ab004.ico` without increasing catalog count.
-- CLI `status` reports core features ready, 542 icons, 19 categories, 6 restore records, shell integration `NotConfigured`, and setup actions for missing targets plus configuring shell integration.
+- CLI `status` reports core features ready, 185 icons, 7 categories, 6 restore records, shell integration `NotConfigured`, and setup actions for missing targets plus configuring shell integration.
 - CLI `action-request configure-shell-integration` resolves to `ShowShellIntegrationPlan`.
 - CLI `action-request review-missing-targets` resolves to `ShowRestoreHistory` with filter `Stale`.
 - CLI `paths` reports existing Icon Library, Imported, AppData, and restore-state locations.
 - CLI `open-request` enables real Icon Library, Imported, and Restore State paths with directory/file shell verbs.
 - CLI `history` supports `all`, `restorable`, `applied`, `restored`, and `stale`; real proof shows 6 total records, 2 stale records, and 0 restorable records.
-- CLI `menu` reports `Change icon...`, 19 categories, and 542/542 visible icons from `C:\Users\cristian\.icons`.
+- CLI `menu` reports `Change icon...`, 7 categories, and 185/185 visible icons from `C:\Users\cristian\.icons`.
 - CLI `menu-commands` reports `change-icon`, stable `icon:<hash>` commands, and argument templates for the same current menu snapshot.
 - CLI `menu-invoke-preview change-icon C:\Users\cristian\.icons` reports final `change-icon --target ... --target-kind folder` arguments without mutation.
 - CLI `menu-apply` changed and restored a temporary folder target using a current Icon Library catalog icon; after restore, `desktop.ini` no longer existed.
-- `doctor` reports 19 categories, 542 icons, 0 warnings, 6 restore records, 0 restorable records, and 2 missing targets from earlier deleted temporary proof targets.
+- `doctor` reports 7 categories, 185 icons, 0 warnings, 6 restore records, 0 restorable records, and 2 missing targets from earlier deleted temporary proof targets.
 
 ### Pre-IR-008.8: WinUI Home Snapshot
 
@@ -376,7 +386,7 @@ Proof:
 
 - `AppHomeServiceTests.GetSnapshotComposesMainWindowState` passes.
 - `AppHomeServiceTests.GetSnapshotHonorsHistoryFilterAndMenuCaps` passes.
-- CLI `home` reports core features ready, shell integration `NotConfigured`, 542 icons, 19 categories, 542/542 menu icons, 6 restore records, 2 stale records, and app locations.
+- CLI `home` reports core features ready, shell integration `NotConfigured`, 185 icons, 7 categories, 185/185 menu icons, 6 restore records, 2 stale records, and app locations.
 - CLI `home stale` reports the same home state with history filter `Stale`.
 
 ### Pre-IR-008.14: Packaged App Activation Snapshot
@@ -394,7 +404,7 @@ Proof:
 - `AppActivationServiceTests.ActivateWithChangeIconArgumentsReturnsLaunchRequest` passes.
 - `AppActivationServiceTests.ActivateWithUnsupportedTargetReturnsDisabledChangeIconSnapshot` passes.
 - `AppActivationServiceTests.ActivateRejectsUnknownVerb` passes.
-- CLI `activate` reports kind `Home`, core ready, shell integration `NotConfigured`, 542 icons, and 19 categories.
+- CLI `activate` reports kind `Home`, core ready, shell integration `NotConfigured`, 185 icons, and 7 categories.
 - CLI `activate change-icon --target C:\Users\cristian\.icons --target-kind folder` reports kind `ChangeIcon`, `Can continue: yes`, target kind `Folder`, and picker can open.
 
 ### Pre-IR-008.15: Activated Post-Picker Change Flow
@@ -428,7 +438,7 @@ Proof:
 - `IconBrowserServiceTests.BrowseFiltersBySearchAndCategory` passes.
 - `IconBrowserServiceTests.BrowseCapsVisibleItems` passes.
 - `IconBrowserServiceTests.BrowseReportsCatalogWarnings` passes.
-- CLI `browse adobe --max 5` reports capped matching results from the current 542-icon library.
+- CLI `browse adobe --max 5` reports capped matching results from the current 185-icon library.
 - CLI `browse --category "Developer Tools" --max 5` reports 5/30 shown from that category.
 - CLI `browse --max 3` reports 3/542 shown and 539 omitted.
 
@@ -532,7 +542,7 @@ Proof:
 - `IconMenuCommandServiceTests.BuildCommandsIncludesChangeIconAndVisibleIconCommands` passes.
 - `IconMenuCommandServiceTests.BuildCommandsCreatesStableSafeIconCommandIds` passes.
 - `IconMenuCommandServiceTests.BuildCommandsAddsOpenAppOverflowCommandWhenMenuIsTruncated` passes.
-- CLI `menu-commands` reports 543 commands for the real 542-icon library: `change-icon` plus one command per visible icon.
+- CLI `menu-commands` reports 186 commands for the real 185-icon library: `change-icon` plus one command per visible icon.
 
 ### Pre-IR-007.3: Shell Menu Command Invocation Preview
 
@@ -567,7 +577,7 @@ Proof:
 - `IconMenuServiceTests.BuildSnapshotReturnsUnavailableStateWhenCatalogCannotBeScanned` passes.
 - `IconMenuCommandServiceTests.BuildCommandsAddsOpenAppCommandForEmptyMenu` passes.
 - `IconMenuCommandServiceTests.BuildCommandsDegradesToChangeIconAndOpenAppWhenCatalogFails` passes.
-- CLI `menu` reports state `Ready` for the real 542-icon library.
+- CLI `menu` reports state `Ready` for the real 185-icon library.
 - CLI `menu-commands` reports state `Ready` and 363 commands for the real library.
 
 ### Pre-IR-008.11: WinUI Diagnostics Snapshot
@@ -582,7 +592,7 @@ Proof:
 - `AppDiagnosticsServiceTests.GetDiagnosticsReportsReadyCoreAndPendingShell` passes.
 - `AppDiagnosticsServiceTests.GetDiagnosticsReportsEmptyLibraryAndMissingWinApp` passes.
 - `AppDiagnosticsServiceTests.GetDiagnosticsReportsCatalogWarnings` passes.
-- CLI `diagnostics` reports 1 blocker (`winapp` missing), 1 warning (`NotConfigured` shell integration), WinUI templates available, 542 icons, and existing app locations.
+- CLI `diagnostics` reports current tooling/setup state, 185 icons, and existing app locations.
 - CLI `diagnostics` exits with code 2 while `winapp` is missing.
 
 ### Pre-IR-008.12: WinUI Batch Import Results
@@ -608,7 +618,7 @@ Proof:
 - `IconCollectionImportServiceTests.ImportIntoCollectionRejectsNullSourceList` passes.
 - CLI `batch-import` with two copies of `adobe.ico` reports 2 reused existing, 0 imported, 0 failed.
 - Catalog remains stable after duplicate batch proofs because repeated icons are reused by content hash.
-- CLI `collections` reports 19 real collections, including `Imported`, with per-collection icon counts.
+- CLI `collections` reports 7 real collections, including `Imported`, with per-collection icon counts.
 
 ### Pre-IR-008.13: WinUI Icon Details Snapshot
 
@@ -635,7 +645,7 @@ Proof:
 
 - `CatalogWarningsServiceTests.GetWarningsListsInvalidRootAndCategoryIcons` passes.
 - `CatalogWarningsServiceTests.GetWarningsReturnsEmptySnapshotForCleanCatalog` passes.
-- CLI `catalog-warnings` reports 19 categories, 542 icons, and 0 warnings for the real `C:\Users\cristian\.icons` library.
+- CLI `catalog-warnings` reports 7 categories, 185 icons, and 0 warnings for the real `C:\Users\cristian\.icons` library.
 
 ### Pre-IR-008.24: WinUI Accessibility Acceptance Plan
 
@@ -720,7 +730,7 @@ Proof:
 - `AppRouteViewServiceTests.GetViewForDiagnosticsReflectsToolingBlockers` passes.
 - `AppRouteViewServiceTests.GetViewForPackagePlanUsesWindowTooling` passes.
 - `AppRouteViewServiceTests.GetViewRejectsUnknownRoute` passes.
-- CLI `app-view` reports home content ready with 542 icons, 19 categories, and 6 history records.
+- CLI `app-view` reports home content ready with 185 icons, 7 categories, and 6 history records.
 - CLI `app-view --route icon-browser` reports browser content ready with 200 visible icons from 542 matches.
 - CLI `app-view --route package-plan` reports 6 package blockers and 2 warnings when full packaging inputs are supplied to the route view.
 - CLI `app-view` initially kept workflow-only routes non-mutating until route-specific workflow content was added in later slices.
@@ -1138,7 +1148,7 @@ Result:
 - Packaged Change Icon activation: pass, pending `change-icon` activation launches the packaged app and opens a modal `Change icon` file dialog.
 - Native tooling setup: pass, Visual Studio Build Tools expose `cl.exe` and MSBuild through `scripts\Initialize-NativeToolchain.ps1`; CMake is available.
 - Diagnostics: pass, reports 0 blockers, `winapp` and native build tools available, and shell integration `NotConfigured` as a warning.
-- Shell plan: pass, reports Modern MSIX plus `IExplorerCommand` as the accepted V1 path, manifest contract ready, Classic HKCU as fallback, and Explorer registration not configured.
+- Shell plan: pass, reports the packaged modern/classic Explorer pair as the accepted V1 path, marks raw HKCU verbs retired, and keeps registration readiness separate from the architecture decision.
 - Shell manifest: pass, reports stable CLSID `B8F1A86D-4C52-4C53-BF72-30B59F7F0F7D`, `IconReplacer.ShellExtension.dll`, `STA`, `Directory`, `.lnk`, and a parseable manifest fragment without registration.
 - Shell bridge: pass, reports native bridge protocol, manifest identity, target status, safety rules, command counts, invocable counts, resolved arguments, and disabled reasons without mutation.
 - Package plan: pass, reports per-user MSIX mode, 3 current product blockers, 2 proof warnings, native shell extension built, uninstall shell-removal policy, and `.icons`/restore-history preservation without installing anything.
@@ -1158,8 +1168,8 @@ Result:
 - Activated preview: pass, activation args plus real `adobe.ico` report `Can apply: yes` without mutation.
 - Activated apply: pass, temporary folder target changed and restored; after restore, `desktop.ini` no longer existed.
 - Activated menu apply: pass, unit proof applies a current Icon Library menu icon through packaged-app `menu-apply` activation and rejects external icons before mutation.
-- Home: pass, core ready, package-plan blocker action visible, 542 icons, 19 categories, 6 restore records, 2 stale records, shell integration `NotConfigured`.
-- Browse: pass, search/category filters and capped results work against the real 542-icon library.
+- Home: pass, core ready, package-plan action visible, 185 icons, 7 categories, 6 restore records, and 2 stale records.
+- Browse: pass, search/category filters and capped results work against the real 185-icon library.
 - Details: pass, real `adobe.ico` shows 8 internal images and recommended 256x256 image; `app-view --route icon-details --icon ...` renders the same selected-icon metadata without mutation.
 - Preview change: pass, real `.icons` folder plus `adobe.ico` reports `Can apply: yes`; selecting an `.ico` as target reports `UnsupportedTarget`, keeps icon details visible, and exits 65.
 - Recent: pass, 6 real changes shown, 0 restore-enabled, 2 stale with explicit missing-target reasons.
@@ -1167,8 +1177,8 @@ Result:
 - Batch import: pass, duplicate selected icons reuse existing imported file and catalog remains stable.
 - Catalog warnings: pass, real library shows 0 warnings; tests cover invalid root/category icons.
 - Collection import: pass, unit proof covers valid import, duplicate reuse, invalid file results, and null input rejection.
-- Collections: pass, 19 real one-level collections listed including `Imported`; app-view collections route reports 542 collection icons without mutation.
-- Catalog: pass, 19 categories, 542 icons.
+- Collections: pass, 7 real one-level collections listed including `Imported`; app-view collections route reports 185 collection icons without mutation.
+- Catalog: pass, 7 categories, 185 icons.
 - Target: pass, supported folder enables `Change icon...`; unsupported `.ico` target disables it with exit code 65.
 - Picker request: pass, supported folder creates a single-select `.ico` picker request rooted at `C:\Users\cristian\.icons`; unsupported `.ico` target disables the picker with exit code 65.
 - Launch request: pass, supported folder creates `change-icon --target C:\Users\cristian\.icons --target-kind folder`; unsupported `.ico` target disables launch with exit code 65.
@@ -1176,8 +1186,8 @@ Result:
 - Status: pass, core features ready and shell integration `NotConfigured`.
 - Paths: pass, all current app locations reported.
 - Open request: pass, known app locations return safe open/open-file requests.
-- Menu: pass, state `Ready`, `Change icon...`, 19 categories, 542/542 visible icons; unit proof covers empty, warning, truncated, and unavailable states.
-- Menu commands: pass, state `Ready`, 543 shell-facing descriptors generated from the real menu snapshot; unit proof covers `open-app` recovery for empty/unavailable menus.
+- Menu: pass, state `Ready`, `Change icon...`, 7 categories, 185/185 visible icons; unit proof covers empty, warning, truncated, and unavailable states.
+- Menu commands: pass, state `Ready`, 186 shell-facing descriptors generated from the real menu snapshot; unit proof covers `open-app` recovery for empty/unavailable menus.
 - Menu invocation preview: pass, `change-icon` resolves final arguments for a supported folder and disables unsupported `.ico` targets.
 - Menu apply: pass, current Icon Library icon changed and restored a temporary folder target; after restore, `desktop.ini` no longer existed.
 - Doctor: pass, dashboard counts and restore-health counts shown.
@@ -1185,8 +1195,560 @@ Result:
 
 ## Next
 
-Modern shell integration is selected, the WinUI/native toolchain is ready, the native `IExplorerCommand` DLL builds, the package manifest contains the COM/context-menu declarations, and pending `Change icon` activation opens the native file dialog. Continue by adding package identity/signing/installer proof, then capture install, uninstall, dynamic submenu, and manual Explorer proof before registration is considered complete.
+Packaged modern and classic shell integration is implemented, the signed package installs, the native command host opens the picker or applies a selected library icon without opening the management UI, and dynamic menu previews have native smoke proof. Continue with the remaining manual Explorer matrix for `.lnk`, restore, and failure states.
 
 ## Open Gate
 
-Explorer registration remains blocked until the selected Modern MSIX plus native `IExplorerCommand` path has package identity, signing, installer, install/uninstall, dynamic submenu, and manual Explorer proof. Do not register final shell integration yet.
+Explorer registration was active for the signed development-MSIX proof recorded
+below. It was removed during context-menu recovery; the current external state is
+uninstalled. Release acceptance remains open until the explicitly approved
+folder/shortcut apply/restore and error-state matrix has clean evidence.
+
+## 2026-07-13 Gallery First And Zero-Window Shell Refactor
+
+Implemented:
+
+- Replaced the diagnostic-heavy management shell with the selected Gallery First Library, Recent, and Settings experience.
+- Added real lazy `.ico` previews, bounded thumbnail caching, in-memory search/filtering, collection mosaics, restore previews, System/Light/Dark preferences, Mica, and restrained Acrylic.
+- Compacted the top toolbar to one 32 px control row and tuned the default gallery to six complete 64 px previews per row at the reference viewport.
+- Added a 252 px default Collections pane with a 220-380 px splitter, delayed neutral hover affordance, pressed resize glyph, and keyboard resizing.
+- Reduced the expanded app navigation pane to 184 px and reserved a 20 px splitter channel so its hover/drag affordance cannot be covered by the gallery.
+- Aligned every icon name in a fixed two-line label region and reduced borders to approximately 1% opacity.
+- Removed resize-time per-icon layout churn by coalescing width updates to the render loop and sharing one gallery metrics object across all icon tiles.
+- Centered the DPI-scaled main window within the primary monitor work area before activation.
+- Added `IconReplacer.CommandHost` as a zero-management-window `WinExe` for direct picker and direct submenu application.
+- Added dynamic native collection/icon commands for `%USERPROFILE%\.icons`, including real `.ico` preview paths and automatic re-enumeration.
+- Added a native COM smoke executable and Gallery First UI Automation suite.
+
+Proof:
+
+- `dotnet build src\IconReplacer.App\IconReplacer.App.csproj -p:Platform=x64 -p:BuildNativeShellExtension=false`: pass, 0 warnings, 0 errors.
+- `dotnet test IconReplacer.slnx --no-restore`: pass, 235 tests.
+- `tests\ui\gallery-first-ui.ps1`: pass, 14/14 in `artifacts/ui-tests/gallery-first/automated-v18`.
+- `tests\ui\responsive-grid-ui.ps1`: pass at compact/reference/wide widths with 3/6/8 columns, 1 px maximum cell-width spread, and 2 px maximum gap spread.
+- Native COM smoke: pass with real `Adobe Creative` collection, `Adobe` icon, and `.ico` preview path.
+- Design QA: pass; full and focused Light/Dark comparison evidence is recorded in `design-qa.md` and `artifacts/design-qa`.
+
+Next gate:
+
+- Capture the remaining real Explorer direct-picker, `.lnk`, restore, and failure-state workflows.
+- Run the final uninstall cycle after manual Explorer proof and verify shell removal while preserving `.icons` and restore history.
+
+## 2026-07-13 Classic Menu Previews And Package Proof
+
+Implementation:
+
+- Added packaged `windows.fileExplorerClassicContextMenuHandler` registration for `Directory` and `.lnk` alongside the modern `IExplorerCommand` path.
+- Added a separator plus `Change icon...` and `Icon collections`, with the application icon on both root commands.
+- Added real representative previews for every collection and real `.ico` previews for every icon command.
+- Implemented `IContextMenu2`/`IContextMenu3` and lazy preview population on `WM_INITMENUPOPUP`; the initial right-click no longer decodes the full catalog.
+- Kept commands on the zero-window `IconReplacer.CommandHost` path.
+- Hardened MSIX staging and lifecycle checks so all visual assets, including `Assets\AppIcon.ico`, must be present after install.
+
+Proof:
+
+- Native COM smoke passes with every collection preview and all 30 icon previews in the opened `Adobe Creative` collection.
+- Latest native timings on the real catalog: 11.6 ms initial query, 3.6 ms collection previews, and 15.0 ms for 30 icon previews.
+- Core tests pass: 235/235.
+- Signed x64 MSIX build and `Test-MsixLifecycle.ps1 -KeepInstalled` pass.
+- A real Explorer collection command applied `adobe-535ab004.ico` to `artifacts\explorer-proof\Folder Target` and created restore state without opening a management workflow.
+
+Remaining acceptance:
+
+- Capture clean Explorer screenshots for previews, direct picker, `.lnk` apply/restore, and failure states.
+- Run the final uninstall preservation cycle after manual Explorer proof is complete.
+
+## 2026-07-13 Context Menu Recovery And Coexistence Guard
+
+Recovery:
+
+- Captured the package, StartAllBack, and merged shell-registration state under `artifacts\context-menu-recovery\20260713-185129`.
+- Removed only `IconReplacer_1.0.0.0_x64__2wx6x5nenbha0` and restarted Explorer once.
+- Verified that all 57 non-Icon-Replacer shell registrations remained identical; the only removed entry was `IconReplacer_2wx6x5nenbha0`.
+- Verified StartAllBack 3.9.23 loaded in the new Explorer process and no new Explorer failure was recorded.
+
+Hardening:
+
+- Bounded the classic handler to 8 collections, 30 icons per collection, and 242 command ids.
+- Added a constrained 8-id coexistence test and a 75 ms initial-query budget.
+- Reduced the real catalog from 19 generated test collections/545 files to the intended six curated collections plus `Imported`/185 files, with all removed test directories archived.
+- Reduced native smoke timings from 112 ms to 11.6 ms for the initial query, 3.6 ms for collection previews, and 15.0 ms for 30 icon previews.
+- Added lifecycle guards that reject any unrelated context-menu registry change or unexpected Explorer restart.
+- Final guarded install/uninstall proof passed with the same normalized context-menu hash at baseline, post-install, and post-uninstall; Explorer kept PID `35348` and StartAllBack remained loaded.
+- `package-plan` now reports 0 blockers and 0 warnings from the current build/sign/install/uninstall evidence.
+
+Current external state: the package remains uninstalled until the next visual Explorer proof is explicitly approved.
+
+## 2026-07-13 Evidence Binding And Snapshot Hardening
+
+- Expanded the non-Icon-Replacer context-menu snapshot from selected fields to
+  every normalized value and subkey: 57 top-level entries and 77 registry nodes.
+- Added `Test-MsixLifecycle.ps1 -SnapshotOnly` for current-state evidence without
+  installing, removing, launching, or registering Icon Replacer.
+- Failure cleanup now verifies package removal, context-menu preservation,
+  Explorer identity, Icon Library contents, and restore state before returning
+  the original lifecycle failure.
+- Bound `package-plan` build and lifecycle evidence to the exact package length
+  and SHA-256, matching context-menu hashes, and matching Explorer identities.
+- Rebuilt and signed the current MSIX as SHA-256
+  `048DE385DB99CB1368C9006417D44471C376FC9980B815FFB08E8A123ABC2AC3`.
+  The previous lifecycle evidence belongs to SHA-256
+  `33E487EF36149228F275E713641EC114007ABF1AA8B2DFDAE4C7714795C7C10B`,
+  so `package-plan` correctly reports two proof warnings.
+- Fixed solution-build contention where `CommandHost` was compiled both as a
+  solution project and from the WinUI target in parallel. Solution builds now
+  reuse the top-level host output while direct app/package builds still invoke
+  the required host build.
+- `dotnet build IconReplacer.slnx -c Release`: pass with 0 warnings and 0 errors.
+- `dotnet test IconReplacer.slnx -c Release`: 258 passed, 0 failed.
+- Added eight source-contract tests that require stable automation ids on the
+  interactive management controls, system-brush high-contrast resources,
+  strict CommandHost ownership of Explorer activations, and both modern and
+  classic Directory/`.lnk` registrations in the package manifest. The final
+  two prevent package mutation without explicit Explorer approval and require
+  the interactive proof path to own cleanup.
+- Native smoke remains green with 187 commands, an 8-id constrained range, and
+  a latest 26.3 ms initial query on the current 185-icon catalog.
+
+Current external state: zero Icon Replacer packages are installed. Renewing
+lifecycle evidence for the current package remains approval-gated.
+
+Operational hardening: mutating lifecycle runs now require
+`-ApproveExplorerRegistration`. The new `-InteractiveProof` mode creates a
+timestamped evidence session, waits for the approved manual matrix, then
+uninstalls the package and rechecks unrelated handlers, Explorer identity,
+`.icons`, and restore state in the same guarded execution. Failure cleanup also
+updates the session record with verified or incomplete cleanup status. The
+runner now preserves the exact pre-session restore-state bytes in memory so the
+manual apply/restore matrix cannot leave test records in the user's history.
+It also refuses to replace a preinstalled Icon Replacer package, keeping every
+proof session scoped to registrations that the same run created.
+
+Interrupted-session recovery: the runner now persists that restore-state
+baseline with current-user DPAPI protection before registration. A guarded
+`-RecoverInterruptedProof` mode selects the newest incomplete session (or an
+explicit `-RecoverySessionPath`), removes only Icon Replacer, restores history,
+and verifies the saved context-menu, Explorer, library, and state baselines
+without reinstalling the package.
+
+Management-operation reliability: Refresh, Import, and Open Library now share
+one `IsBusy`-based command gate; restore-row commands observe the same gate, so
+different toolbar and history operations cannot race over catalog or restore
+state. Import and restore background exceptions are converted into actionable
+InfoBar errors. Successful import feedback is now shown after, rather than
+cleared by, the catalog refresh.
+
+Pressure repair: removed the transitional `pending-activation.args` consumer and
+all Explorer activation handling from the WinUI management app. The shell-facing
+AppModel protocols remain shared with `IconReplacer.CommandHost`, but the main
+shortcut can no longer open a picker or apply an icon from stale activation data.
+
+Directory-link coverage: local directory junctions and symbolic links are now
+explicit Folder Targets across shell selection, apply, restore, and history
+identity. Focused Windows tests prove `desktop.ini` apply/restore through both
+link types without replacing the link. Link chains are resolved before mutation;
+remote/UNC destinations, cycles, missing targets, and excessive depth are
+rejected before icon import or target metadata changes. Release build passes
+with zero warnings/errors and the full suite is green at 258/258. The signed
+x64 MSIX is SHA-256
+`048DE385DB99CB1368C9006417D44471C376FC9980B815FFB08E8A123ABC2AC3`;
+native smoke remains green (22.3 ms initial query), and a post-build safe
+snapshot confirms 57/57 unrelated menu entries with zero packages installed.
+
+## 2026-07-13 Gallery First Accessibility Hardening
+
+Implementation:
+
+- Replaced the stale diagnostic-route accessibility plan with the real Library,
+  Recent, and Settings surfaces.
+- Added icon-name plus collection semantics, target-specific Recent restore
+  names, splitter semantics, slider help text, complete Settings path naming,
+  and polite live regions for status, summaries, and the empty state.
+- Reworked operation feedback so changed InfoBar content closes, updates, and
+  reopens, allowing assistive technology to announce the new message.
+- Added adaptive toolbar states for wide, compact, and narrow logical widths so
+  200% scaling keeps search, commands, and preview sizing visible without
+  overlapping the responsive gallery.
+- Added `tests\ui\accessibility-ui.ps1` for repeatable keyboard, names, bounds,
+  scale, Recent, Settings, and screenshot evidence without invoking Import or
+  Restore mutations.
+
+Proof:
+
+- `dotnet build IconReplacer.slnx -c Release`: pass, 0 warnings, 0 errors.
+- WinUI `BuildAndRun.ps1 -SkipRun`: pass in Release x64 without launching or
+  registering the package.
+- `dotnet test IconReplacer.slnx -c Release --no-build`: 260/260 passed,
+  including ten WinUI/shell source-contract tests.
+- Accessibility script parser: pass; CLI accessibility plan reports 16
+  requirements, 5 manual proof items, and the 3 actual surfaces.
+- Native smoke: pass with 187 commands, constrained 8-id coexistence, real
+  collection/icon previews, and a 19.9 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,733,245 bytes,
+  SHA-256 `B05A15B20201804DE3194EF6F9F72E5D7BBE0C37041F3E353F73DF013799930E`.
+- Post-package snapshot: 57/57 external context-menu entries, 77 normalized
+  registry nodes, unchanged Explorer identity, StartAllBack loaded, and zero
+  Icon Replacer packages installed.
+
+Remaining gate: runtime UIA at 100% and 200%, High Contrast visual evidence,
+and the complete Explorer matrix require an explicitly approved package
+registration session. The current external state remains uninstalled.
+
+## 2026-07-13 Concurrent Restore-State Hardening
+
+Implementation:
+
+- Added one named per-state-file mutex shared by the management app and
+  `IconReplacer.CommandHost`, covering reads and complete read-modify-write
+  operations.
+- Replaced direct `state.json` writes with a unique same-directory temporary
+  file, write-through serialization, disk flush, and atomic replacement.
+- Preserved the previous valid state on lock or replacement failure and cleaned
+  abandoned temporary output when possible.
+
+Proof:
+
+- The new concurrent-writer test failed before the fix with 61 of 64 writes
+  rejected by sharing violations, reproducing the lost-history risk.
+- Focused `RestoreRecordStoreTests`: 8/8 passed after the fix, covering 64
+  simultaneous writers, readers overlapping writers, and failed replacement
+  with the previous valid state retained.
+- Full Release build: pass with 0 warnings and 0 errors; full test suite:
+  263/263 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 27.6 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,734,518 bytes,
+  SHA-256 `0A23CF072908E9391099BB9897C2302E6380BAE8ECD35140BD19FFA12888067A`.
+- Post-package snapshot: 57/57 unrelated menu entries, zero differences,
+  unchanged Explorer identity, and zero Icon Replacer packages installed.
+
+## 2026-07-13 Restore Persistence Compensation
+
+Implementation:
+
+- Added the restore-side compensating transaction: when disk restore succeeds
+  but the `Restored` status cannot be persisted, the recorded applied icon is
+  reapplied before releasing the per-Target lock.
+- Kept the existing durable record as `Applied`, matching the compensated disk
+  state and allowing a later restore retry.
+- Failed reapply reports `PartialFailure` with separate save and reapply causes.
+
+Proof:
+
+- RED: a locked `state.json` previously left the folder restored while its
+  durable record still said `Applied`.
+- GREEN: folder and Windows `.lnk` tests reapply the recorded icon and preserve
+  `Applied` state after the same persistence failure.
+- GREEN: a locked restored `desktop.ini` forces reapply failure and returns both
+  `Save failed` and `Reapply failed` evidence.
+- Full Release build: pass with 0 warnings and 0 errors; package-time WinUI
+  analyzer build: pass without launching the app; full suite: 271/271 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 20.4 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,736,243 bytes,
+  SHA-256 `CAB240A6656D47CF853BD089B4434B89C143D899296FC2ACF2781FDF99A26B39`.
+- Post-package snapshot: 57/57 unrelated menu entries, zero differences,
+  unchanged Explorer identity, and zero Icon Replacer packages installed.
+
+## 2026-07-13 Apply Persistence Compensation
+
+Implementation:
+
+- Added automatic folder and shortcut rollback when an apply mutation succeeds
+  but its restore record cannot be persisted.
+- Kept compensation inside the per-Target lock so no second app/CommandHost
+  operation can observe or overwrite the transient unrecorded state.
+- Successful compensation returns the original persistence error and explicitly
+  reports that the Target was restored.
+- Failed compensation reports `PartialFailure` with independent save and
+  rollback causes.
+
+Proof:
+
+- RED: an obstructed restore-state path previously returned `PartialFailure`
+  while leaving generated `desktop.ini` and changed folder attributes behind.
+- GREEN: the same failure restores the folder bytes/attributes and removes the
+  generated `desktop.ini`.
+- GREEN: the equivalent Windows `.lnk` path restores its prior icon location.
+- GREEN: a locked `desktop.ini` forces compensation failure and the result
+  includes both `Save failed` and `Rollback failed` evidence.
+- Full Release build: pass with 0 warnings and 0 errors; package-time WinUI
+  analyzer build: pass without launching the app; full suite: 268/268 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 17.3 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,736,021 bytes,
+  SHA-256 `2AF7328C4DBF7F5DD4E797A225047062A69486CDADF267043505A7A759645561`.
+- Post-package snapshot: 57/57 unrelated menu entries, zero differences,
+  unchanged Explorer identity, and zero Icon Replacer packages installed.
+
+## 2026-07-13 Per-Target Mutation Coordination
+
+Implementation:
+
+- Added one named per-Target mutex shared by all management-app and CommandHost
+  instances.
+- Guarded the complete apply transaction through target mutation, Explorer
+  notification, and restore-record persistence.
+- Guarded restore through mutation and state update, re-reading the record after
+  lock acquisition so stale concurrent requests cannot restore it twice.
+- Kept locks target-specific so unrelated folders and shortcuts do not share a
+  global mutation bottleneck.
+
+Proof:
+
+- RED: 20 of 24 simultaneous changes to one folder failed before coordination;
+  several failures also reported incomplete rollback because another operation
+  held or changed `desktop.ini`.
+- GREEN: 24/24 simultaneous applies succeed, create a complete restore chain,
+  and reverse restoration removes the generated `desktop.ini`.
+- GREEN: of 24 simultaneous restores for one applied record, exactly one
+  succeeds and every stale request is rejected as already restored.
+- Full Release build: pass with 0 warnings and 0 errors; WinUI analyzer build:
+  pass without launching the app; full test suite: 265/265 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 23.9 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,735,618 bytes,
+  SHA-256 `F90873C72E85EA7087235298B994F7A4E1596FDBE32662A3AAC68BF0DB7020F4`.
+- Post-package snapshot: 57/57 unrelated menu entries, zero differences,
+  unchanged Explorer identity, and zero Icon Replacer packages installed.
+
+## 2026-07-13 Startup Activation Hardening
+
+Implementation:
+
+- Activated the lightweight main window before constructing the Gallery First
+  page, then queued page navigation at low dispatcher priority with a direct
+  fallback if enqueueing is unavailable.
+- Added a centered, named startup progress indicator using the app's existing
+  loading pattern; it stops and collapses immediately after successful page
+  navigation, avoiding an empty first frame and idle animation work.
+- Made page navigation idempotent so duplicate activation callbacks cannot
+  construct a second management page.
+- Resolved the title-bar icon from `AppContext.BaseDirectory` and retained the
+  manifest icon when the loose asset is unavailable instead of failing startup
+  on a relative working-directory assumption.
+- Removed the unsupported unpackaged publish experiment; the supported WinUI
+  path remains packaged build/run only.
+
+Proof:
+
+- Focused source-contract test: pass; activation precedes deferred Gallery
+  construction, the constructor performs no page navigation, and the app icon
+  path is absolute and existence-guarded.
+- WinUI analyzer build: pass with 0 warnings and 0 errors without launching or
+  registering the app; full suite: 272/272 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 22.7 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,736,560 bytes,
+  SHA-256 `9361E8C557C3F216E2F5F08F21DF427BB4C784F1A607B7C68A53A95DD0E2391B`.
+- Post-package snapshot: 57/57 unrelated menu entries, unchanged normalized
+  hash and Explorer identity, and zero Icon Replacer packages installed.
+
+## 2026-07-14 High-Resolution Previews And Installed Candidate
+
+Implementation:
+
+- Made WinUI icon decoding adaptive to rendered size and rasterization scale,
+  with bounded 64/128/256 pixel cache buckets and no downgrade after a larger
+  preview has loaded.
+- Added deterministic rounded alpha masking for the official light/dark assets,
+  including 512 px display PNGs for About/title-bar surfaces and multi-frame ICOs
+  for Explorer/package identity.
+- Made classic nested previews use the official `HBMMENU_CALLBACK` path so the
+  `IContextMenu3` handler measures and alpha-blends each collection/icon bitmap
+  even when the host renderer omits nested `hbmpItem` images.
+- Upgraded the installed package to `1.0.0.5` through the approved guarded path
+  and reloaded Explorer.
+
+Proof:
+
+- Release .NET suite: 289/289 passed; WinUI Release build has 0 warnings/errors.
+- Installed UIA at 125%: 9/9 accessibility checks and 15/15 Gallery checks pass;
+  About and Library screenshots show crisp rounded official identity and icon
+  previews.
+- Native Release smoke: 187 commands, callback measure/draw for collection and
+  icon previews, constrained 8-id coexistence, and 150.156 ms under 250 ms.
+- Signed x64 MSIX: `IconReplacer_1.0.0.5_x64.msix`, 48,592,977 bytes,
+  SHA-256 `07165F5CD50912C5DB00713652A22F3FC8253C57A80BC809DB713B5BF587CAE7`.
+- Guarded lifecycle: exact package installed, Explorer reloaded, and all 185
+  Icon Library files, restore state, and unrelated context-menu entries were
+  preserved.
+- Real folder menu: one grouped command pair, official app icons, no duplicates,
+  unrelated entries present, and direct picker launch. Final nested-preview
+  screenshot was interrupted by user input and remains open.
+
+## 2026-07-14 Versioned Package Candidate
+
+Implementation:
+
+- Raised the current development candidate from package version `1.0.0.0` to
+  `1.0.0.1`, allowing Windows to recognize it as a newer package than the
+  candidate currently installed.
+- Removed hardcoded MSIX filenames from build and lifecycle scripts. Both now
+  derive the expected package name and version from `Package.appxmanifest`.
+- Added a source contract preventing the scripts from drifting back to a fixed
+  `1.0.0.0` package path.
+
+Proof:
+
+- Release suite: 287/287 passed; PowerShell parser and manifest XML checks pass.
+- Native smoke: 187 commands, complete previews, constrained 8-id coexistence,
+  and a 147.719 ms query under the 250 ms budget.
+- Signed x64 MSIX `IconReplacer_1.0.0.1_x64.msix`: valid
+  `CN=IconReplacerDev` signature, 48,052,628 bytes, SHA-256
+  `4BE31D3831B96610B48958C6B9DC21F25113DC7E542EB26EC64F388FD5CB4623`.
+- Packaged and native shell DLLs remain byte-identical at SHA-256
+  `3C3DF9AA78F5830ABE53E3FC6DF5198FF36C3AD4FDDCF95C918983BFE9F5EB40`.
+- Snapshot-only lifecycle proof still preserves all 57 unrelated context-menu
+  entries. Its deployment preflight verifies the valid candidate signature,
+  matching package identity, and `1.0.0.1` upgrade over installed `1.0.0.0`
+  without modifying package registration.
+- Added an explicitly approved `UpgradeInstalledPackage + KeepInstalled` path
+  that requires the signed newer candidate and updates without a pre-install
+  uninstall. A negative run without the approval switch exits before mutation
+  and leaves installed `1.0.0.0` unchanged.
+
+## 2026-07-14 About And Update Detection
+
+Implementation:
+
+- Added an About footer destination with the official theme-aware application
+  icon, installed version, project credit, and direct GitHub/release links.
+- Added an asynchronous GitHub Releases check that starts only when About opens,
+  times out after 8 seconds, trusts only HTTPS `github.com` release URLs, and
+  reports update-available, current, no-release, timeout, offline, malformed,
+  and HTTP-error states without blocking navigation.
+- Added accessible names/live update status plus repeatable UIA coverage for the
+  About route. Hardened the UIA reader against elements without optional
+  properties and named the Settings Open Library button explicitly.
+
+Proof:
+
+- GitHub's public latest-release endpoint currently returns 404 for the project;
+  the app treats this as the valid `NoPublishedRelease` state.
+- Focused update/source tests and Release WinUI build pass; full suite: 284/284.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 48,052,635 bytes,
+  SHA-256 `29523E7E079B4D0702DE7AF2D6CD872A5CCFE858C1D22B7FC8A9723B6744F75A`.
+- Packaged shell DLL remains byte-identical to the duplicate-menu fix candidate,
+  SHA-256 `3C3DF9AA78F5830ABE53E3FC6DF5198FF36C3AD4FDDCF95C918983BFE9F5EB40`.
+- Snapshot-only guard passes without package mutation. Current-candidate About
+  screenshot/UIA and Explorer duplicate proof remain tied to the approved
+  package replacement.
+
+## 2026-07-14 Classic Menu Duplicate Suppression
+
+Implementation:
+
+- Reproduced the duplicate pair with one installed package and Windows' classic
+  context menu override enabled; no stale Icon Replacer registry handler or
+  second package was present.
+- Added `IObjectWithSelection` to the modern Explorer commands. Normal modern
+  state queries remain enabled; classic dispatch marks those roots hidden so
+  the preview-capable `IContextMenu3` handler is the only Icon Replacer group.
+- Preserved the classic separator, application icons, collection previews, icon
+  previews, and zero-window command-host invocation.
+
+Proof:
+
+- Red/green native regression: the pre-fix DLL failed because modern roots were
+  not suppressed after classic selection injection; the corrected DLL passes
+  both normal-modern and classic-hidden states.
+- Native Release build and smoke: pass with `/W4`, 187 commands, complete eager
+  previews, constrained 8-id coexistence, and a 195.954 ms query under 250 ms.
+- Full .NET suite: 284/284 passed after the About/update slice.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 48,052,635 bytes,
+  SHA-256 `29523E7E079B4D0702DE7AF2D6CD872A5CCFE858C1D22B7FC8A9723B6744F75A`.
+- Packaged shell DLL matches the Release candidate SHA-256
+  `3C3DF9AA78F5830ABE53E3FC6DF5198FF36C3AD4FDDCF95C918983BFE9F5EB40`.
+- Snapshot-only guard passes without package mutation; runtime Explorer proof
+  still requires an explicitly approved package replacement and Explorer reload.
+
+## 2026-07-14 Official Light And Dark App Icons
+
+Implementation:
+
+- Accepted `assets\icon-light.png` and `assets\icon-dark.png` as the only
+  canonical production icon sources; historical design images are no longer
+  production inputs.
+- Added a deterministic Pillow pipeline that produces nine-frame light/dark
+  ICOs plus every MSIX square, taskbar, Store, lock-screen, splash, and wide
+  derivative.
+- Routed WinUI title-bar and `AppWindow` icons from the app's actual theme and
+  routed modern/classic Explorer roots from Windows `AppsUseLightTheme`.
+- Kept `AppIcon.ico` as a byte-identical light fallback and retained user icon
+  previews for collection commands.
+- Added package and lifecycle gates for both official ICOs and both 24/48
+  `unplated`/`lightunplated` taskbar variants.
+
+Proof:
+
+- Visual asset inspection: light/dark 24 px variants remain recognizable; 88 px
+  and 620x300 package surfaces preserve the official composition.
+- Determinism: two consecutive regenerations produced zero hash changes.
+- ICO inspection: light, dark, and fallback files each contain 16, 20, 24, 32,
+  40, 48, 64, 128, and 256 pixel frames.
+- Release WinUI build: pass with 0 warnings and 0 errors; full suite: 274/274.
+- Native smoke: pass with the themed official root icon, 187 commands, full
+  collection/icon previews, constrained 8-id coexistence, and 78.6 ms query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 48,042,373 bytes,
+  SHA-256 `4DBE86F364EE8DE5F23A0AA0DEA76363BAA995C7B5C561D8992F3DDF3ED1AEA4`.
+- Package inspection: both official ICOs and all four 24/48 taskbar variants are
+  present; snapshot-only proof retains all 57 unrelated context-menu entries.
+- One older package remains installed. Runtime visual proof of this candidate
+  still requires the separately approved guarded package replacement.
+
+## 2026-07-14 Classic Submenu Preview Rendering
+
+Implementation:
+
+- Removed the classic submenu preview dependency on manually forwarded
+  `WM_INITMENUPOPUP`; collection and icon bitmaps are now attached while the
+  bounded menu is constructed.
+- Replaced raw icon color-plane bitmaps with WIC-decoded, premultiplied 32-bit
+  ARGB DIB sections and selected the best available ICO frame before scaling.
+- Kept unreadable icon commands usable by falling back to the application
+  bitmap instead of dropping the menu item.
+- Strengthened native proof so a non-null bitmap is insufficient: every enabled
+  collection and icon entry must expose a 32-bit DIB with visible alpha pixels
+  immediately after `QueryContextMenu`.
+
+Proof:
+
+- Native Release build: pass with `/W4`; native smoke passes against the real
+  185-file library with 187 commands, an 8-id constrained range, complete eager
+  previews, three consecutive full queries at 102.2-136.0 ms, and a 172.2 ms
+  observed cold maximum under the 250 ms budget.
+- Full .NET suite: 273/273 passed.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,747,428 bytes,
+  SHA-256 `40EEE1A6B8D0FDF77A8789E49B3F04D9DB9F4EFAD67F5BF1DB8F68A1880886B3`.
+- Snapshot-only guard: 57/57 unrelated menu entries retain normalized hash
+  `A7C938435CB53F206BC26A2A9698273F36E8E7F03F427F0AF92BF9BD493B99C1`.
+- One older development package remains installed. Its shell DLL hash differs
+  from the corrected candidate, so real Explorer visual proof remains pending
+  an explicitly approved guarded update.
+
+## 2026-07-13 Versioned Thumbnail Refresh Cache
+
+Implementation:
+
+- Replaced path-only thumbnail reuse with a bounded cache keyed by normalized
+  path plus file length and UTC write timestamp.
+- Kept unchanged decoded previews across manual catalog refreshes instead of
+  clearing the complete cache.
+- Rejected stale in-flight results when the icon changes during decoding and
+  kept pending-load coalescing scoped to the same file version.
+- Preserved bounded eviction while preventing an older queue entry from
+  removing a newer version of the same path.
+
+Proof:
+
+- Focused source-contract test: pass for unchanged-cache preservation,
+  length/timestamp versioning, stale-load rejection, and pending-load identity.
+- WinUI analyzer build: pass with 0 warnings and 0 errors without launching or
+  registering the app; full suite: 273/273 passed.
+- Native smoke: pass with 187 commands, real collection/icon previews, an
+  8-command constrained range, and a 25.8 ms initial query.
+- Signed x64 MSIX: valid `CN=IconReplacerDev` signature, 47,738,442 bytes,
+  SHA-256 `7B672B56BCDB2607F1D7B941980EF3587F0DFC7A0E6D1045226698E19DB2D9B9`.
+- Post-package snapshot: 57/57 unrelated menu entries, unchanged normalized
+  hash and Explorer identity, and zero Icon Replacer packages installed.

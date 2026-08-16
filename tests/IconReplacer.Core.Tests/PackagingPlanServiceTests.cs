@@ -68,6 +68,25 @@ public sealed class PackagingPlanServiceTests
             item.Detail.Contains(".icons", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void GetPlanBlocksNativeBuildWhenCMakeIsMissing()
+    {
+        var tooling = ReadyNativeTooling() with
+        {
+            CMakeAvailable = false,
+            CMakeDetail = "CMake missing."
+        };
+
+        var plan = new PackagingPlanService().GetPlan(PackagingPlanInputs.FromTooling(
+            new WinUiToolingSnapshot(true, true, true, "templates ready", "winapp ready"),
+            tooling));
+
+        Assert.Contains(plan.Items, item =>
+            item.Id == "native-build-tools" &&
+            item.Status == AppDiagnosticStatus.Blocking &&
+            item.Detail.Contains("CMake: missing", StringComparison.Ordinal));
+    }
+
     private static NativeToolingSnapshot ReadyNativeTooling()
     {
         return new NativeToolingSnapshot(

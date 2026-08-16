@@ -1,0 +1,575 @@
+{
+  "generated_at": "2026-08-15T01:22:59Z",
+  "generated_from_commit": "97822eef7be769a50e6439d93c5198ffb83ef60b",
+  "scope": [
+    "."
+  ],
+  "nodes": [
+    {
+      "id": "buildandrun",
+      "path": "BuildAndRun.ps1",
+      "role": "Owns the tracked files for the BuildAndRun module.",
+      "type": "interface",
+      "boundary": "Buildandrun",
+      "entrypoints": [
+        "BuildAndRun.ps1:<#"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "BuildAndRun.ps1",
+            "symbol": "<#"
+          }
+        ]
+      }
+    },
+    {
+      "id": "external-dependencies",
+      "path": "scripts/Build-AppIconAssets.py",
+      "role": "Represents external packages referenced by tracked source files.",
+      "type": "external",
+      "boundary": "External",
+      "entrypoints": [
+        "scripts/Build-AppIconAssets.py:__future__"
+      ],
+      "tests": [],
+      "constraints": [
+        "Only dependencies with literal tracked-source references appear here."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "scripts/Build-AppIconAssets.py",
+            "symbol": "__future__"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scripts",
+      "path": "scripts",
+      "role": "Owns the tracked files for the scripts module.",
+      "type": "service",
+      "boundary": "Scripts",
+      "entrypoints": [
+        "scripts/Build-AppIconAssets.ps1:[CmdletBinding()]"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "scripts/Build-AppIconAssets.ps1",
+            "symbol": "[CmdletBinding()]"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-app",
+      "path": "src/IconReplacer.App",
+      "role": "Owns the tracked files for the src / IconReplacer.App module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.App/App.xaml:<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.App/App.xaml",
+            "symbol": "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-appmodel",
+      "path": "src/IconReplacer.AppModel",
+      "role": "Owns the tracked files for the src / IconReplacer.AppModel module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.AppModel/AccessibilityPlanService.cs:namespace IconReplacer.AppModel;"
+      ],
+      "tests": [
+        "tests/IconReplacer.Core.Tests/AccessibilityPlanServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/ActivatedIconChangeServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/ActivatedMenuApplyServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/AppActionRequestServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/AppActivationServiceTests.cs"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.AppModel/AccessibilityPlanService.cs",
+            "symbol": "namespace IconReplacer.AppModel;"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-cli",
+      "path": "src/IconReplacer.Cli",
+      "role": "Owns the tracked files for the src / IconReplacer.Cli module.",
+      "type": "interface",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.Cli/IconReplacer.Cli.csproj:﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Cli/IconReplacer.Cli.csproj",
+            "symbol": "﻿<Project Sdk=\"Microsoft.NET.Sdk\">"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-commandhost",
+      "path": "src/IconReplacer.CommandHost",
+      "role": "Owns the tracked files for the src / IconReplacer.CommandHost module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.CommandHost/IconReplacer.CommandHost.csproj:<Project Sdk=\"Microsoft.NET.Sdk\">"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.CommandHost/IconReplacer.CommandHost.csproj",
+            "symbol": "<Project Sdk=\"Microsoft.NET.Sdk\">"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-core",
+      "path": "src/IconReplacer.Core",
+      "role": "Owns the tracked files for the src / IconReplacer.Core module.",
+      "type": "service",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.Core/DesktopIniDocument.cs:using System.Text;"
+      ],
+      "tests": [
+        "tests/IconReplacer.Core.Tests/ActivatedIconChangeServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/ActivatedMenuApplyServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/AppActionRequestServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/AppActivationServiceTests.cs",
+        "tests/IconReplacer.Core.Tests/AppChangeIconWorkflowServiceTests.cs"
+      ],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Core/DesktopIniDocument.cs",
+            "symbol": "using System.Text;"
+          }
+        ]
+      }
+    },
+    {
+      "id": "src-iconreplacer-shellextension",
+      "path": "src/IconReplacer.ShellExtension",
+      "role": "Owns the tracked files for the src / IconReplacer.ShellExtension module.",
+      "type": "module",
+      "boundary": "Src",
+      "entrypoints": [
+        "src/IconReplacer.ShellExtension/IconReplacer.ShellExtension.cpp:EnumExplorerCommand"
+      ],
+      "tests": [],
+      "constraints": [
+        "This baseline uses tracked source and explicit dependency references only."
+      ],
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.ShellExtension/IconReplacer.ShellExtension.cpp",
+            "symbol": "EnumExplorerCommand"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "scripts",
+      "to": "external-dependencies",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "scripts/Build-AppIconAssets.py",
+            "symbol": "__future__"
+          },
+          {
+            "path": "scripts/Build-AppIconAssets.py",
+            "symbol": "pathlib"
+          },
+          {
+            "path": "scripts/Build-AppIconAssets.py",
+            "symbol": "PIL"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-app",
+      "to": "src-iconreplacer-appmodel",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.App/ViewModels/MainPageViewModel.cs",
+            "symbol": "GitHubReleaseUpdateService"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/MainPageViewModel.cs",
+            "symbol": "NativeIconFileDialog"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/ToolingProbe.cs",
+            "symbol": "WinUiToolingSnapshot"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/ToolingProbe.cs",
+            "symbol": "PackagingPlanInputs"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/ToolingProbe.cs",
+            "symbol": "NativeToolingDetector"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-app",
+      "to": "src-iconreplacer-appmodel",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.App/IconReplacer.App.csproj",
+            "symbol": "..\\IconReplacer.AppModel\\IconReplacer.AppModel.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-app",
+      "to": "src-iconreplacer-core",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.App/ViewModels/MainPageViewModel.cs",
+            "symbol": "IconReplacerError"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/MainPageViewModel.cs",
+            "symbol": "IconLibraryPaths"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-appmodel",
+      "to": "src-iconreplacer-core",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.AppModel/ActivatedIconChangeService.cs",
+            "symbol": "IconReplacerError"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/ActivatedIconChangeService.cs",
+            "symbol": "IconLibraryPaths"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/ActivatedMenuApplyService.cs",
+            "symbol": "IconReplacerError"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/ActivatedMenuApplyService.cs",
+            "symbol": "IconLibraryPaths"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/AppActionRequestService.cs",
+            "symbol": "IconReplacerError"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/AppActionRequestService.cs",
+            "symbol": "IconLibraryPaths"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/AppActivationService.cs",
+            "symbol": "IconReplacerError"
+          },
+          {
+            "path": "src/IconReplacer.AppModel/AppActivationService.cs",
+            "symbol": "IconLibraryPaths"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-appmodel",
+      "to": "src-iconreplacer-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.AppModel/IconReplacer.AppModel.csproj",
+            "symbol": "..\\IconReplacer.Core\\IconReplacer.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-cli",
+      "to": "src-iconreplacer-appmodel",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "DashboardService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "AppDiagnosticsService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "ShellIntegrationPlanService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "ShellManifestContractService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "ShellExtensionBridgeService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "PackagingPlanService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "ReleaseReadinessService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "AccessibilityPlanService"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-cli",
+      "to": "src-iconreplacer-appmodel",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Cli/IconReplacer.Cli.csproj",
+            "symbol": "..\\IconReplacer.AppModel\\IconReplacer.AppModel.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-cli",
+      "to": "src-iconreplacer-core",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "IconCatalogService"
+          },
+          {
+            "path": "src/IconReplacer.Cli/Program.cs",
+            "symbol": "IconLibraryPaths"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-cli",
+      "to": "src-iconreplacer-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.Cli/IconReplacer.Cli.csproj",
+            "symbol": "..\\IconReplacer.Core\\IconReplacer.Core.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-commandhost",
+      "to": "src-iconreplacer-appmodel",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "IconLibraryService"
+          },
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "AppActivationService"
+          },
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "ActivatedIconChangeService"
+          },
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "ActivatedMenuApplyService"
+          },
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "NativeIconFileDialog"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-commandhost",
+      "to": "src-iconreplacer-appmodel",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.CommandHost/IconReplacer.CommandHost.csproj",
+            "symbol": "..\\IconReplacer.AppModel\\IconReplacer.AppModel.csproj"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-commandhost",
+      "to": "src-iconreplacer-core",
+      "type": "calls",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.CommandHost/Program.cs",
+            "symbol": "IconLibraryPaths"
+          }
+        ]
+      }
+    },
+    {
+      "from": "src-iconreplacer-commandhost",
+      "to": "src-iconreplacer-core",
+      "type": "imports",
+      "evidence": {
+        "status": "verified",
+        "locations": [
+          {
+            "path": "src/IconReplacer.CommandHost/IconReplacer.CommandHost.csproj",
+            "symbol": "..\\IconReplacer.Core\\IconReplacer.Core.csproj"
+          }
+        ]
+      }
+    }
+  ],
+  "flows": [
+    {
+      "trigger": "Tracked reference src/IconReplacer.App/ViewModels/MainPageViewModel.cs:GitHubReleaseUpdateService",
+      "steps": [
+        "src-iconreplacer-app",
+        "src-iconreplacer-appmodel",
+        "src-iconreplacer-core"
+      ],
+      "outcome": "The verified dependency path reaches src-iconreplacer-core through 2 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/IconReplacer.Cli/Program.cs:DashboardService",
+      "steps": [
+        "src-iconreplacer-cli",
+        "src-iconreplacer-appmodel",
+        "src-iconreplacer-core"
+      ],
+      "outcome": "The verified dependency path reaches src-iconreplacer-core through 2 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/IconReplacer.CommandHost/Program.cs:IconLibraryService",
+      "steps": [
+        "src-iconreplacer-commandhost",
+        "src-iconreplacer-appmodel",
+        "src-iconreplacer-core"
+      ],
+      "outcome": "The verified dependency path reaches src-iconreplacer-core through 2 step(s)."
+    },
+    {
+      "trigger": "Tracked reference scripts/Build-AppIconAssets.py:__future__",
+      "steps": [
+        "scripts",
+        "external-dependencies"
+      ],
+      "outcome": "The verified dependency path reaches external-dependencies through 1 step(s)."
+    },
+    {
+      "trigger": "Tracked reference src/IconReplacer.App/ViewModels/MainPageViewModel.cs:GitHubReleaseUpdateService to src-iconreplacer-appmodel",
+      "steps": [
+        "src-iconreplacer-app",
+        "src-iconreplacer-appmodel"
+      ],
+      "outcome": "The verified dependency path reaches src-iconreplacer-appmodel through 1 step(s)."
+    }
+  ]
+}
