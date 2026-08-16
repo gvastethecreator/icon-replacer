@@ -46,6 +46,7 @@ Date: 2026-08-09
 - [Installation and Packaging](operations/INSTALLATION.md): packaging paths, install/uninstall expectations, and dev prerequisites.
 - [Release Downloads](operations/RELEASE.md): candidate download, integrity verification, certificate trust, install, and uninstall steps.
 - [Maintenance 2026-08-09](MAINTENANCE_2026-08-09.md): dependency migrations, repository cleanup, quality review, and current gates.
+- [Maintenance 2026-08-14](MAINTENANCE_2026-08-14.md): dependency refresh, public documentation, CI hardening, screenshots, and Pages evidence.
 - [Changelog](../CHANGELOG.md): user-visible changes by release.
 - [Risks](RISKS.md): risk register and mitigations.
 - [Contributing](../CONTRIBUTING.md): development and pull-request expectations.
