@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-09T18:30:30Z",
-  "generated_from_commit": "2b8e0578255a58f67da49150c7c46a0fb215c1be",
+  "generated_at": "2026-08-15T01:22:59Z",
+  "generated_from_commit": "97822eef7be769a50e6439d93c5198ffb83ef60b",
   "scope": [
     "."
   ],
@@ -270,6 +270,10 @@
           {
             "path": "src/IconReplacer.App/ViewModels/ToolingProbe.cs",
             "symbol": "PackagingPlanInputs"
+          },
+          {
+            "path": "src/IconReplacer.App/ViewModels/ToolingProbe.cs",
+            "symbol": "NativeToolingDetector"
           }
         ]
       }

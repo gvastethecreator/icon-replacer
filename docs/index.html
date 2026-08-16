@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#efebe2" />
+    <meta
+      name="description"
+      content="Icon Replacer is a local-first Windows utility for changing and restoring folder and shortcut icons."
+    />
+    <title>Icon Replacer — Give folders a visual address</title>
+    <link rel="icon" href="assets/app-icon.webp" />
+    <link rel="stylesheet" href="site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Icon Replacer home">
+        <img src="assets/app-icon.webp" alt="" width="42" height="42" />
+        <span>ICON REPLACER</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#tour">Tour</a>
+        <a href="#workflow">Workflow</a>
+        <a href="https://github.com/gvastethecreator/icon-replacer/blob/main/docs/operations/RELEASE.md">Install guide</a>
+        <a class="nav-download" href="https://github.com/gvastethecreator/icon-replacer/releases/tag/v1.0.0-rc.1">Get RC.1</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-copy">
+          <p class="eyebrow"><span>WINDOWS UTILITY</span><span>RC / 01</span></p>
+          <h1>Give every folder<br />a visual address.</h1>
+          <p class="hero-lede">
+            Change folder and shortcut icons from File Explorer. Keep a local library. Undo the decision later.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/gvastethecreator/icon-replacer/releases/tag/v1.0.0-rc.1">Download release candidate</a>
+            <a class="button secondary" href="https://github.com/gvastethecreator/icon-replacer">Read the source</a>
+          </div>
+          <p class="hero-note">Windows 10/11 · x64 · local `.ico` files · no account</p>
+        </div>
+
+        <div class="route-card" aria-label="Icon change workflow illustration">
+          <p class="card-index">FIELD NOTE / 001</p>
+          <div class="route-object">
+            <span class="folder-shape" aria-hidden="true"></span>
+            <div>
+              <strong>PROJECT ARCHIVE</strong>
+              <span>Folder Target</span>
+            </div>
+          </div>
+          <div class="route-line"><span>01</span><b>SELECT</b><i></i></div>
+          <div class="route-line"><span>02</span><b>APPLY</b><i></i></div>
+          <div class="route-line"><span>03</span><b>RESTORE</b><i></i></div>
+          <p class="route-result">ONE RIGHT-CLICK. ZERO REGISTRY DETOURS.</p>
+        </div>
+      </section>
+
+      <section class="statement" aria-label="Product statement">
+        <p>Icons are not decoration.</p>
+        <p>They are wayfinding for the file system.</p>
+      </section>
+
+      <section class="tour" id="tour">
+        <div class="section-heading">
+          <p>PRODUCT TOUR / REAL BUILD</p>
+          <h2>A library you can read at a glance.</h2>
+        </div>
+
+        <div class="shot-grid">
+          <figure class="shot shot-wide">
+            <img src="assets/screenshots/icon-library.webp" alt="Icon Replacer library with four matte editorial icon examples" width="1346" height="853" loading="eager" />
+            <figcaption><span>01</span><strong>Browse the local Icon Library</strong></figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="assets/screenshots/filtered-library.webp" alt="Icon Replacer search narrowed to a field map icon" width="1346" height="853" loading="eager" />
+            <figcaption><span>02</span><strong>Filter without rescanning disk</strong></figcaption>
+          </figure>
+          <figure class="shot">
+            <img src="assets/screenshots/settings-appearance.webp" alt="Icon Replacer appearance settings" width="1346" height="390" loading="eager" />
+            <figcaption><span>03</span><strong>Follow the system or choose a theme</strong></figcaption>
+          </figure>
+          <figure class="shot shot-wide">
+            <img src="assets/screenshots/about.webp" alt="Icon Replacer About page" width="1346" height="853" loading="eager" />
+            <figcaption><span>04</span><strong>Version and update details stay visible</strong></figcaption>
+          </figure>
+        </div>
+        <p class="tour-note">Screenshots were captured from the current WinUI Release build. The four sample icons are documentation fixtures, not bundled assets.</p>
+      </section>
+
+      <section class="workflow" id="workflow">
+        <div class="section-heading inverse">
+          <p>THE SHORT PATH</p>
+          <h2>Change it. Keep the receipt.</h2>
+        </div>
+        <ol class="workflow-list">
+          <li><span>01</span><div><h3>Choose a Target</h3><p>Right-click a local folder or `.lnk` shortcut in File Explorer.</p></div></li>
+          <li><span>02</span><div><h3>Pick from your library</h3><p>Use a collection or import a local `.ico` file into `%USERPROFILE%\.icons`.</p></div></li>
+          <li><span>03</span><div><h3>Restore when needed</h3><p>Icon Replacer records the previous state so Recent can put it back.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="principles">
+        <article><span>A</span><h3>Local first</h3><p>Your icons, history, and library stay on your Windows account.</p></article>
+        <article><span>B</span><h3>Explorer native</h3><p>Modern and classic menu paths meet users where the folder already lives.</p></article>
+        <article><span>C</span><h3>Reversible</h3><p>Every mutation is designed around a Restore Record, not a leap of faith.</p></article>
+      </section>
+
+      <section class="release">
+        <div>
+          <p class="release-kicker">CURRENT RELEASE</p>
+          <h2>v1.0.0-rc.1</h2>
+          <p>The core workflow is working. Stable status remains gated by uninstall, accessibility, and remaining Explorer evidence.</p>
+        </div>
+        <div class="release-links">
+          <a href="https://github.com/gvastethecreator/icon-replacer/releases/tag/v1.0.0-rc.1">Download RC.1 <span>↗</span></a>
+          <a href="https://github.com/gvastethecreator/icon-replacer/blob/main/docs/operations/RELEASE.md">Verify and install <span>→</span></a>
+          <a href="https://github.com/gvastethecreator/icon-replacer/issues">Report a problem <span>→</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <img src="assets/app-icon.webp" alt="" width="36" height="36" />
+        <strong>Icon Replacer</strong>
+        <span>Built for the folders you actually use.</span>
+      </div>
+      <nav aria-label="Footer links">
+        <a href="https://github.com/sponsors/gvastethecreator/">GitHub Sponsors</a>
+        <a href="https://ko-fi.com/gvaste">Ko-fi</a>
+        <a href="https://github.com/gvastethecreator/icon-replacer">GitHub</a>
+      </nav>
+    </footer>
+  </body>
+</html>

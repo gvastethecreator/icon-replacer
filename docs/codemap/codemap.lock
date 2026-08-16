@@ -1,7 +1,7 @@
 {
-  "current_commit": "2b8e0578255a58f67da49150c7c46a0fb215c1be",
+  "source_commit": "97822eef7be769a50e6439d93c5198ffb83ef60b",
   "working_tree_dirty": true,
-  "generated_at": "2026-08-09T18:30:30Z",
+  "generated_at": "2026-08-15T01:22:59Z",
   "scanned_scope": [
     "."
   ],
@@ -32,20 +32,20 @@
     {
       "id": ".",
       "path": ".",
-      "file_count": 10,
-      "fingerprint": "23f9d5d44f5a7b399e2c5ce6e021326abafdd7f45a9b3f4472ec51d31f869433"
+      "file_count": 11,
+      "fingerprint": "ee1132d8d2ec7c3a1a57698feb390b6a11a92cd1b32b7ec7ad3ce7925d48725f"
     },
     {
       "id": ".github",
       "path": ".github",
       "file_count": 3,
-      "fingerprint": "0202b3d3c6ecf9c4a282da89e611cd52acfd09d92d7bca392a761ddae84a8969"
+      "fingerprint": "dce75b9913635e3a2600bc08bf6049a4d5045c1268126d80137cd52db8d795e9"
     },
     {
       "id": ".vscode",
       "path": ".vscode",
-      "file_count": 1,
-      "fingerprint": "b826b7283e2c07d6fa440fd954531938c9526632f1dd2fc6962c71b18d9bc44a"
+      "file_count": 2,
+      "fingerprint": "9cc8a143f2bb3d16a4390bf28487dda80d8469b539914b41b992e01ba8a27b9e"
     },
     {
       "id": "assets",
@@ -56,8 +56,8 @@
     {
       "id": "docs",
       "path": "docs",
-      "file_count": 37,
-      "fingerprint": "3c3a6f3b186de2275e49ef2c144910e4df284b24e4955ff53e1aa96c733030c1"
+      "file_count": 43,
+      "fingerprint": "c4fae35063ad12fe967d783dcbaef68c8967dd62bf5dded53f7d8289982ebced"
     },
     {
       "id": "plans",
@@ -74,14 +74,14 @@
     {
       "id": "src",
       "path": "src",
-      "file_count": 216,
-      "fingerprint": "82fbf243210a846c4f605d5c1f306393acd50590e7b99efd5db572837c592bad"
+      "file_count": 222,
+      "fingerprint": "11f483724f409ea47645626fdc9c251d5d7b75c858c337be763546579953c3a2"
     },
     {
       "id": "tests",
       "path": "tests",
-      "file_count": 70,
-      "fingerprint": "0a5c7a1f76c5cf31987420c5c8ab6415ad3f579f65151fd561d842c83aa73747"
+      "file_count": 71,
+      "fingerprint": "5a094e1fd3d469421e567464c9792d981091aca5b7635bac15e0e80ee832aa86"
     }
   ]
 }
