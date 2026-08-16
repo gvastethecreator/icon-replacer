@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "📦 restore",
+      "type": "shell",
+      "command": "dotnet restore IconReplacer.slnx",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🏗️ build",
+      "type": "shell",
+      "command": "dotnet build IconReplacer.slnx -c Release --no-restore",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🧪 test",
+      "type": "shell",
+      "command": "dotnet test IconReplacer.slnx -c Release --no-restore",
+      "problemMatcher": "$msCompile",
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "📊 coverage",
+      "type": "shell",
+      "command": "dotnet test tests/IconReplacer.Core.Tests/IconReplacer.Core.Tests.csproj -c Release --no-restore --collect:'XPlat Code Coverage'",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🧬 native",
+      "type": "shell",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Build-NativeShellExtension.ps1 -Configuration Release -Platform x64",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "🔍 outdated",
+      "type": "shell",
+      "command": "dotnet list IconReplacer.slnx package --outdated --include-transitive",
+      "problemMatcher": []
+    },
+    {
+      "label": "🛡️ audit",
+      "type": "shell",
+      "command": "dotnet list IconReplacer.slnx package --vulnerable --include-transitive",
+      "problemMatcher": []
+    },
+    {
+      "label": "🚦 ci",
+      "type": "shell",
+      "command": "dotnet restore IconReplacer.slnx --locked-mode && dotnet build IconReplacer.slnx -c Release --no-restore && dotnet test IconReplacer.slnx -c Release --no-build",
+      "problemMatcher": "$msCompile",
+      "group": { "kind": "build", "isDefault": true }
+    }
+  ]
+}

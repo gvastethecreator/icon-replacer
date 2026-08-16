@@ -110,7 +110,7 @@ public sealed class AppNavigationService
                 AppNavigationRouteIds.ShellPlan,
                 "Shell Integration Plan",
                 AppNavigationSection.Setup,
-                "Modern shell path, prerequisites, manifest contract, and fallback status.",
+                "Packaged modern and classic Explorer paths, prerequisites, and manifest contract.",
                 isTopLevel: false,
                 requiresSelection: false,
                 defaultHistoryFilter: null,

@@ -65,12 +65,26 @@ Icon Replacer is not complete if it only changes one test folder on the happy pa
 | Folder | Protected folder | Access denied, target unchanged |
 | Folder | OneDrive local folder | Apply if writable, cache-delay message if needed |
 | Folder | UNC/network path | Blocked or warned in V1 |
+| Directory junction | Local directory target | Icon applied/restored through the selected junction; junction remains intact |
+| Directory symbolic link | Local directory target | Icon applied/restored through the selected symlink; symlink remains intact |
+| Directory symbolic link | Remote/UNC target | Rejected before icon import or target mutation |
 | Shortcut | Normal `.lnk` | Icon applied and restorable |
 | Shortcut | Broken target `.lnk` | Icon can still change if `.lnk` writable |
 | Shortcut | `.url` | Unsupported in V1 |
 | Restore | Target exists | Previous state restored |
 | Restore | Target moved/deleted | Preserved history with `target-missing`; restore not offered as safe |
 | Restore | Record already restored | Rejected as not currently applied |
+| Restore state | App and CommandHost write concurrently | Every record is preserved in valid JSON |
+| Restore state | Reads overlap concurrent writes | Every read receives one complete valid snapshot |
+| Restore state | Atomic replacement fails | Previous valid state remains readable, temporary output is cleaned, and an actionable error is returned |
+| Apply persistence | Restore record cannot be saved after folder mutation | Folder and attributes return to their original state; the persistence error is reported |
+| Apply persistence | Restore record cannot be saved after shortcut mutation | Shortcut returns to its previous icon without changing other metadata |
+| Apply persistence | Save and automatic rollback both fail | `PartialFailure` reports both causes and never claims the Target was restored |
+| Restore persistence | `Restored` status cannot be saved for a folder | Recorded applied icon is reapplied and stored record remains `Applied` |
+| Restore persistence | `Restored` status cannot be saved for a shortcut | Recorded shortcut icon is reapplied and other shortcut metadata remains unchanged |
+| Restore persistence | Status save and icon reapply both fail | `PartialFailure` reports independent save and reapply causes |
+| Target mutation | Many changes target one folder concurrently | Changes serialize, every apply succeeds, and reverse restore returns the original state |
+| Target mutation | Many restores target one applied record concurrently | Exactly one restore succeeds; stale requests are rejected after the record is re-read under the Target lock |
 | Restore preview | Applied record with target | Confirmation state is enabled without mutating target or history |
 | Restore preview | Applied icon missing | Confirmation state stays enabled with a warning |
 | Restore preview | Missing target or already restored record | Confirmation state is disabled with a stable reason |
@@ -82,9 +96,9 @@ Icon Replacer is not complete if it only changes one test folder on the happy pa
 | Diagnostics | WinUI templates and `winapp` present | Tooling checks pass, no install attempted |
 | Diagnostics | Native C++ build tools available through Build Tools | `native-build-tools` passes, helper script can expose `cl.exe` and MSBuild |
 | Diagnostics | Shell integration not configured | Warning shown, Explorer registration not attempted |
-| Shell plan | Accepted V1 path | Modern MSIX plus `IExplorerCommand` selected, Classic HKCU marked fallback only |
-| Shell plan | Explorer registration not configured | Required modern-path implementation/proof gates shown before registration |
-| Shell manifest | Modern contract | `windows.comServer`, `windows.fileExplorerContextMenus`, stable CLSID, `Directory`, and `.lnk` targets shown without registration |
+| Shell plan | Accepted V1 path | Packaged modern `IExplorerCommand` plus packaged classic handler selected; raw HKCU verbs retired |
+| Shell plan | Explorer registration not configured | Packaged implementation/proof gates shown without registering Explorer |
+| Shell manifest | Packaged dual contract | `windows.comServer`, modern and classic context-menu categories, stable CLSID, `Directory`, and `.lnk` targets shown without registration |
 | Shell bridge | Supported folder or `.lnk` | Manifest identity, target status, safety rules, and resolved command arguments shown without mutation |
 | Shell bridge | Unsupported target | Target-required commands disabled with reason; non-target recovery commands remain invocable |
 | Shell bridge app view | Supported folder or `.lnk` | `app-view --route shell-bridge --shell-target <target>` renders bridge status, command counts, target status, and safety rules without mutation |
@@ -105,6 +119,7 @@ Icon Replacer is not complete if it only changes one test folder on the happy pa
 | Restore workflow | Contract | History loads, selected records preview, missing selection waits, and non-restorable records block without mutation |
 | Diagnostics | Catalog warnings or stale history | Warnings/info shown with counts |
 | Shell selection | Single local folder | `Change icon` enabled |
+| Shell selection | Local directory junction or symbolic link | `Change icon` enabled as a Folder Target |
 | Shell selection | Single local `.lnk` | `Change icon` enabled |
 | Shell selection | Existing non-`.lnk` file | `Change icon` disabled with unsupported-target reason |
 | Shell selection | Missing or remote target | `Change icon` disabled with specific reason |
@@ -113,26 +128,55 @@ Icon Replacer is not complete if it only changes one test folder on the happy pa
 | Picker request | Unsupported file or multi-select | Picker disabled with stable reason, no mutation |
 | Launch request | Supported shell target | Stable `change-icon --target ... --target-kind ...` app arguments are generated |
 | Launch request | Malformed or unsupported launch args | Rejected before picker or mutation logic |
-| Shell | Right-click folder | `Change icon` appears in chosen integration path |
-| Shell | Right-click `.lnk` | `Change icon` appears in chosen integration path |
+| Shell | Right-click folder | `Change icon` appears in both packaged Explorer paths |
+| Shell | Right-click local directory junction or symbolic link | Both direct and collection commands are enabled |
+| Shell | Right-click `.lnk` | `Change icon` appears in both packaged Explorer paths |
+| Classic shell | Root menu | Separator groups `Change icon...` and `Icon collections`; both show the application icon |
+| Classic shell | Collections submenu opens | Every visible collection receives a representative `.ico` preview lazily |
+| Classic shell | Icon submenu opens | Every visible icon receives its own `.ico` preview lazily and remains a one-click apply command |
+| Classic shell | One invalid `.ico` preview | Other commands and previews remain available; Explorer receives no handler failure |
+| Classic shell | Real local catalog | Initial query and lazy submenu preview timings are captured by native smoke proof |
 | Install | Fresh install | Integration registered |
 | Uninstall | Normal uninstall | Integration removed, `.icons` preserved |
 
 ## Accessibility Matrix
 
-- Keyboard can reach every WinUI command.
-- Icon-only buttons have accessible names.
-- High contrast does not hide status or commands.
-- 200% DPI does not clip main controls.
-- Error messages persist in the app and are not toast-only.
-- Icon catalog shows names, not thumbnails alone.
-- `accessibility-plan` lists the shared acceptance contract before WinUI exists.
+- Library navigation, search, Refresh, Import, Open Library, preview-size control,
+  collection list, icon grid, and the Collections splitter are keyboard reachable.
+- Icon-only controls have accessible names and help text where their range or
+  behavior is not obvious.
+- Every icon tile exposes both the icon name and collection; every Recent restore
+  action identifies its target instead of repeating a generic button name.
+- Updated operation feedback reopens the persistent InfoBar and is exposed as a
+  polite live region so assistive technology receives the new message.
+- High contrast keeps navigation, status, selection, commands, and focus visible
+  through system brushes rather than fixed theme colors.
+- At 200% display scaling, the adaptive toolbar moves to its compact layout,
+  keeps every command visible, and does not overlap the responsive icon grid.
+- Long Icon Library paths remain visible and have a complete accessible name in
+  Settings.
+- `accessibility-plan` lists the actual Gallery First Library, Recent, and
+  Settings surfaces and their shared acceptance contract.
+
+Automated accessibility proof for an already launched management app:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\accessibility-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\accessibility-100 -MinimumScalePercent 100
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\accessibility-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\accessibility-200 -MinimumScalePercent 200
+```
+
+The second run must be launched on a monitor configured to 200% scaling. High
+contrast remains a manual visual run of the same script because changing the OS
+theme is outside unattended test ownership.
 
 ## Explorer Proof Matrix
 
 Capture evidence for:
 
 - context menu visible,
+- classic separator, both application icons, collection previews, and one complete icon submenu,
+- classic handler stays at or below 242 command ids and respects a constrained 8-id range,
+- install/uninstall leaves every unrelated context-menu registration unchanged and does not restart Explorer,
 - picker opens directly,
 - folder before/apply/restore,
 - shortcut before/apply/restore,
@@ -158,14 +202,9 @@ Created under `C:\Users\cristian\.icons` from `D:\ICONS\Folder11-Ico\ico`:
 - `Media Audio Video`: 30 icons.
 - `System Utilities`: 30 icons.
 - `Gaming Hardware`: 30 icons.
-- `Folder11 - Adobe Creative Suite`: 30 icons.
-- `Folder11 - Design and 3D Studio`: 30 icons.
-- `Folder11 - Developer Web Stack`: 30 icons.
-- `Folder11 - Games and Platforms`: 30 icons.
-- `Folder11 - Media Streaming Studio`: 30 icons.
-- `Folder11 - System Office Utilities`: 30 icons.
+- `Imported`: 5 icons from direct-picker/import proof.
 
-CLI catalog proof sees 19 categories total including `Imported`, with 542 valid icons.
+CLI catalog proof sees 7 categories total including `Imported`, with 185 valid icons. Twelve generated duplicate test collections were moved to `artifacts\icon-library-archive\20260713-192200` rather than deleted.
 
 ## CLI Proof
 
@@ -178,13 +217,13 @@ Temporary proof targets under `artifacts\tmp` verified:
 - `import <icon.ico> [display-name]`: imports through shared AppModel library orchestration and dedupes repeated content.
 - `import-picker-request [collection]`: reports the future WinUI import picker request; real proof should show multi-select `.ico` picker metadata and Imported or collection destination.
 - `batch-import <icon.ico> [icon2.ico ...]`: reports per-file batch import results; real proof reused an existing imported `adobe.ico` twice without increasing catalog count.
-- `collections`: reports the real 19 one-level Icon Library collections including `Imported`, with per-collection icon counts.
+- `collections`: reports the intended 7 one-level Icon Library collections including `Imported`, with 185 icons total and per-collection counts.
 - `catalog-warnings`: reports the future catalog-warning review list; real proof currently shows 0 warnings.
 - `collection-create <name>`: creates sanitized one-level collection folders idempotently; unit proof covers sanitized names, existing folders, and empty names.
 - `collection-import <collection> <icon.ico> [icon2.ico ...]`: imports valid icons into a one-level collection with per-file results; unit proof covers duplicate reuse and invalid-file failures.
 - `status`: reports first-run readiness, core feature state, package/setup actions, and shell integration `NotConfigured`.
-- `shell-plan`: reports the accepted Modern shell integration plan; real proof shows tooling ready and Explorer registration not configured as warning.
-- `home [filter]`: reports WinUI-ready first-screen state; real proof shows core ready, package/setup actions, 542 icons, 19 categories, 6 restore records, 2 stale records, and all app locations.
+- `shell-plan`: reports the accepted packaged modern/classic integration plan; raw HKCU verbs are retired and the normal post-test state is uninstalled.
+- `home [filter]`: reports WinUI-ready first-screen state; current real proof uses 185 icons in 7 categories.
 - `activate [change-icon --target <path> --target-kind <folder|shortcut>|menu-apply <target> <icon-from-library.ico>]`: reports packaged-app activation routing; real proof routes no args to Home, routes `change-icon` args to the launch/picker flow, and routes `menu-apply` args to a direct submenu apply preview.
 - `activate-preview <icon.ico> change-icon --target <path> --target-kind <folder|shortcut>`: reports post-picker readiness from activation args plus selected icon; real proof enables `C:\Users\cristian\.icons` with `adobe.ico`.
 - `activate-apply <icon.ico> change-icon --target <path> --target-kind <folder|shortcut>`: applies the activated post-picker flow through AppModel; temporary proof changed and restored a folder target with `desktop.ini` removed after restore.
@@ -210,7 +249,7 @@ Temporary proof targets under `artifacts\tmp` verified:
 - `open-request <location>`: reports safe WinUI navigation requests for known app locations; real proof enables Icon Library, Imported, and Restore State.
 - `picker-request <folder-or-shortcut>`: reports the future direct `.ico` file-picker request; real proof enables `C:\Users\cristian\.icons`, uses the Icon Library as initial directory, and disables an `.ico` selected as target with exit code 65.
 - `launch-request <folder-or-shortcut>`: reports the future Explorer-to-app launch request; real proof generates `change-icon --target C:\Users\cristian\.icons --target-kind folder` and disables an `.ico` selected as target with exit code 65.
-- `menu`: reports `Change icon...`, 19 dynamic categories, and 542/542 visible icons from `.icons`.
+- `menu`: reports `Change icon...`, 7 dynamic categories, and 185/185 visible icons from `.icons`.
 - `menu-commands`: reports stable shell-facing command descriptors for the same menu snapshot, including `change-icon` and `icon:<hash>` entries.
 - `shell-bridge [target]`: reports the future native `IExplorerCommand` bridge contract; real proof should cover a supported folder and an unsupported `.ico` target without mutation.
 - `menu-invoke-preview <command-id> [target]`: resolves a command descriptor against a target; real proof should cover `change-icon` on a supported folder and a disabled unsupported target.
@@ -218,4 +257,4 @@ Temporary proof targets under `artifacts\tmp` verified:
 - `target <folder-or-shortcut>`: reports whether the selected target can show `Change icon...`; real proof enables `C:\Users\cristian\.icons` and disables an `.ico` file as unsupported.
 - `change <target> <icon.ico>`: runs the post-picker workflow; real proof rejects an unsupported selected `.ico` target before mutation.
 - `history [filter]`: lists persisted records and supports `all`, `restorable`, `applied`, `restored`, and `stale`.
-- `doctor`: reports 19 catalog categories, 542 icons, 0 catalog warnings, 6 restore records, 0 restorable records, and 2 missing targets.
+- `doctor`: reports the current 7 catalog categories and 185 icons plus catalog and restore-health diagnostics.

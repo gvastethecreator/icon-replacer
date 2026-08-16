@@ -5,7 +5,7 @@ namespace IconReplacer.Core.Tests;
 public sealed class ShellIntegrationPlanServiceTests
 {
     [Fact]
-    public void GetPlanSelectsModernIntegrationForV1()
+    public void GetPlanSelectsPackagedDualIntegrationForV1()
     {
         var plan = new ShellIntegrationPlanService().GetPlan(
             ShellIntegrationReadiness.NotConfigured,
@@ -17,15 +17,31 @@ public sealed class ShellIntegrationPlanServiceTests
                 "winapp ready"));
 
         Assert.True(plan.DecisionFinal);
-        Assert.Equal(ShellIntegrationMode.ModernMsixIExplorerCommand, plan.SelectedMode);
-        Assert.Equal(ShellIntegrationMode.ClassicHkcuVerb, plan.FallbackMode);
+        Assert.Equal(ShellIntegrationMode.PackagedDualExplorerCommands, plan.SelectedMode);
+        Assert.Equal(ShellIntegrationMode.None, plan.FallbackMode);
+        Assert.Equal(ShellIntegrationPlanService.PackagedDualModeName, plan.SelectedModeName);
+        Assert.Equal(ShellIntegrationPlanService.NoFallbackModeName, plan.FallbackModeName);
         Assert.False(plan.HasBlockingIssues);
         Assert.Contains(plan.Items, item =>
             item.Id == "decision" && item.Status == AppDiagnosticStatus.Pass && item.RequiredForV1);
         Assert.Contains(plan.Items, item =>
             item.Id == "manifest-contract" && item.Status == AppDiagnosticStatus.Pass && item.RequiredForV1);
         Assert.Contains(plan.Items, item =>
+            item.Id == "classic-handler" && item.Status == AppDiagnosticStatus.Pass && item.RequiredForV1);
+        Assert.DoesNotContain(plan.Items, item => item.Id == "classic-fallback");
+        Assert.Contains(plan.Items, item =>
             item.Id == "explorer-registration" && item.Status == AppDiagnosticStatus.Warning);
+    }
+
+    [Fact]
+    public void GetPlanTreatsPendingDecisionAsStaleReadiness()
+    {
+        var plan = new ShellIntegrationPlanService().GetPlan(ShellIntegrationReadiness.DecisionPending);
+
+        Assert.True(plan.DecisionFinal);
+        var registration = Assert.Single(plan.Items, item => item.Id == "explorer-registration");
+        Assert.Equal(AppDiagnosticStatus.Warning, registration.Status);
+        Assert.Contains("stale", registration.Title, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

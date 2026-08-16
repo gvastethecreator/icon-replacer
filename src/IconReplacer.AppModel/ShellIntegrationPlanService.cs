@@ -2,8 +2,10 @@ namespace IconReplacer.AppModel;
 
 public sealed class ShellIntegrationPlanService
 {
+    public const string PackagedDualModeName = "Packaged Windows 11 + classic Explorer menus";
     public const string ModernModeName = "Modern MSIX + IExplorerCommand";
-    public const string ClassicModeName = "Classic HKCU context-menu verb";
+    public const string LegacyClassicModeName = "Legacy HKCU context-menu verb (retired)";
+    public const string NoFallbackModeName = "No fallback; packaged pair required";
 
     public ShellIntegrationPlanSnapshot GetPlan(
         ShellIntegrationReadiness readiness = ShellIntegrationReadiness.NotConfigured,
@@ -14,13 +16,13 @@ public sealed class ShellIntegrationPlanService
         {
             Pass(
                 "decision",
-                "Modern shell integration selected",
-                "V1 targets the Windows 11 context-menu path with package identity and a native IExplorerCommand extension.",
+                "Packaged dual Explorer integration selected",
+                "V1 uses native IExplorerCommand entries for the Windows 11 menu and a packaged classic handler for Show more options.",
                 requiredForV1: true),
             Pass(
                 "manifest-contract",
-                "Modern shell manifest contract ready",
-                "The shell-manifest contract defines windows.comServer and windows.fileExplorerContextMenus entries for Directory and .lnk targets.",
+                "Dual shell manifest contract ready",
+                "The manifest defines COM, modern File Explorer commands, and the packaged classic handler for Directory and .lnk targets.",
                 requiredForV1: true),
             ToolingItem(
                 "winui-templates",
@@ -48,22 +50,27 @@ public sealed class ShellIntegrationPlanService
                 "Native shell extension required",
                 "The Explorer-facing component should stay thin and call shared AppModel operations.",
                 requiredForV1: true),
+            Pass(
+                "classic-handler",
+                "Packaged classic handler selected",
+                "Show more options uses the bounded packaged handler; raw HKCU verbs are retired.",
+                requiredForV1: true),
             ExplorerRegistrationItem(readiness),
             Info(
-                "classic-fallback",
-                "Classic integration remains fallback only",
-                "HKCU registry verbs are retained as a prototype or recovery path, not the V1 product target.",
+                "legacy-hkcu-retired",
+                "Legacy HKCU verbs retired",
+                "The product does not install raw per-user context-menu verbs.",
                 requiredForV1: false)
         };
 
         return new ShellIntegrationPlanSnapshot(
-            ShellIntegrationMode.ModernMsixIExplorerCommand,
-            ShellIntegrationMode.ClassicHkcuVerb,
+            ShellIntegrationMode.PackagedDualExplorerCommands,
+            ShellIntegrationMode.None,
             readiness,
             DecisionFinal: true,
-            ModernModeName,
-            ClassicModeName,
-            "Modern integration best matches the requested right-click experience and one-level dynamic Icon Library menu.",
+            PackagedDualModeName,
+            NoFallbackModeName,
+            "The packaged dual path provides the native Windows 11 menu and the requested preview-capable classic menu without raw registry verbs.",
             items,
             DateTimeOffset.UtcNow);
     }
@@ -84,13 +91,13 @@ public sealed class ShellIntegrationPlanService
                 requiredForV1: true),
             ShellIntegrationReadiness.DecisionPending => Warning(
                 "explorer-registration",
-                "Explorer decision pending",
-                "Modern integration is recommended, but V1 registration should wait for decision confirmation.",
+                "Explorer readiness state is stale",
+                "The V1 integration decision is final; refresh setup state before installing the signed package.",
                 requiredForV1: true),
             _ => Warning(
                 "explorer-registration",
                 "Explorer registration not configured",
-                "Build package identity and the native IExplorerCommand extension before registering Explorer.",
+                "Install the signed package only when the visual Explorer proof is approved.",
                 requiredForV1: true)
         };
     }

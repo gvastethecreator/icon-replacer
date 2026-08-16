@@ -6,4 +6,13 @@ artifacts/
 TestResults/
 *.user
 *.suo
-
+__pycache__/
+*.py[cod]
+.local/
+.scratch/
+.cache/
+.vscode/*
+!.vscode/tasks.json
+*.log
+*.tmp
+*.bak

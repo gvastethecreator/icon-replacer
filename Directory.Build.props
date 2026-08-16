@@ -2,6 +2,10 @@
   <PropertyGroup>
     <AnalysisLevel>latest</AnalysisLevel>
     <LangVersion>latest</LangVersion>
+    <Product>Icon Replacer</Product>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/gvastethecreator/icon-replacer</RepositoryUrl>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 </Project>
-

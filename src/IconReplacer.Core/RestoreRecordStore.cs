@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -5,6 +7,7 @@ namespace IconReplacer.Core;
 
 public sealed class RestoreRecordStore
 {
+    private static readonly TimeSpan StateLockTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -12,68 +15,128 @@ public sealed class RestoreRecordStore
     };
 
     private readonly string _stateFilePath;
+    private readonly string _stateLockName;
 
     public RestoreRecordStore(string stateFilePath)
     {
         _stateFilePath = stateFilePath;
+        _stateLockName = CreateStateLockName(stateFilePath);
     }
 
     public OperationResult<IReadOnlyList<RestoreRecord>> List()
     {
-        var records = LoadRecords();
-        if (!records.Succeeded || records.Value is null)
-        {
-            return OperationResult<IReadOnlyList<RestoreRecord>>.Failure(records.Error);
-        }
+        return WithStateLock(
+            () =>
+            {
+                var records = LoadRecords();
+                if (!records.Succeeded || records.Value is null)
+                {
+                    return OperationResult<IReadOnlyList<RestoreRecord>>.Failure(records.Error);
+                }
 
-        return OperationResult<IReadOnlyList<RestoreRecord>>.Success(records.Value);
+                return OperationResult<IReadOnlyList<RestoreRecord>>.Success(records.Value);
+            },
+            OperationResult<IReadOnlyList<RestoreRecord>>.Failure);
     }
 
     public OperationResult<RestoreRecord?> Get(Guid id)
     {
-        var records = LoadRecords();
-        if (!records.Succeeded || records.Value is null)
-        {
-            return OperationResult<RestoreRecord?>.Failure(records.Error);
-        }
+        return WithStateLock(
+            () =>
+            {
+                var records = LoadRecords();
+                if (!records.Succeeded || records.Value is null)
+                {
+                    return OperationResult<RestoreRecord?>.Failure(records.Error);
+                }
 
-        return OperationResult<RestoreRecord?>.Success(records.Value.FirstOrDefault(record => record.Id == id));
+                return OperationResult<RestoreRecord?>.Success(
+                    records.Value.FirstOrDefault(record => record.Id == id));
+            },
+            OperationResult<RestoreRecord?>.Failure);
     }
 
     public OperationResult Upsert(RestoreRecord record)
     {
-        var records = LoadRecords();
-        if (!records.Succeeded || records.Value is null)
-        {
-            return OperationResult.Failure(records.Error);
-        }
+        return WithStateLock(
+            () =>
+            {
+                var records = LoadRecords();
+                if (!records.Succeeded || records.Value is null)
+                {
+                    return OperationResult.Failure(records.Error);
+                }
 
-        var nextRecords = records.Value.Where(existing => existing.Id != record.Id).Append(record)
-            .OrderByDescending(existing => existing.CreatedAt)
-            .ToArray();
+                var nextRecords = records.Value
+                    .Where(existing => existing.Id != record.Id)
+                    .Append(record)
+                    .OrderByDescending(existing => existing.CreatedAt)
+                    .ToArray();
 
+                var payload = new RestoreRecordStoreDto(nextRecords.Select(ToDto).ToArray());
+                return SaveRecords(payload);
+            },
+            OperationResult.Failure);
+    }
+
+    private OperationResult SaveRecords(RestoreRecordStoreDto payload)
+    {
+        string? temporaryPath = null;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(_stateFilePath)!);
-            var payload = new RestoreRecordStoreDto(nextRecords.Select(ToDto).ToArray());
-            File.WriteAllText(_stateFilePath, JsonSerializer.Serialize(payload, JsonOptions));
+            var directory = Path.GetDirectoryName(_stateFilePath)!;
+            Directory.CreateDirectory(directory);
+            temporaryPath = Path.Combine(
+                directory,
+                $"{Path.GetFileName(_stateFilePath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
+
+            using (var stream = new FileStream(
+                temporaryPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 4096,
+                FileOptions.WriteThrough))
+            {
+                JsonSerializer.Serialize(stream, payload, JsonOptions);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporaryPath, _stateFilePath, overwrite: true);
+            temporaryPath = null;
             return OperationResult.Success();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return OperationResult.Failure(new IconReplacerError(
-                ErrorCode.PermissionDenied,
-                "Restore state could not be saved.",
-                ex.Message));
+            return SaveFailure(ErrorCode.PermissionDenied, ex);
         }
         catch (IOException ex)
         {
-            return OperationResult.Failure(new IconReplacerError(
-                ErrorCode.Unknown,
-                "Restore state could not be saved.",
-                ex.Message));
+            return SaveFailure(ErrorCode.Unknown, ex);
+        }
+        finally
+        {
+            if (temporaryPath is not null)
+            {
+                try
+                {
+                    File.Delete(temporaryPath);
+                }
+                catch (IOException)
+                {
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+            }
         }
     }
+
+    private static OperationResult SaveFailure(ErrorCode code, Exception exception) =>
+        OperationResult.Failure(new IconReplacerError(
+            code,
+            "Restore state could not be saved.",
+            exception.Message));
 
     private OperationResult<IReadOnlyList<RestoreRecord>> LoadRecords()
     {
@@ -110,6 +173,61 @@ public sealed class RestoreRecordStore
                 "Restore state could not be read.",
                 ex.Message));
         }
+    }
+
+    private T WithStateLock<T>(Func<T> operation, Func<IconReplacerError, T> failure)
+        where T : OperationResult
+    {
+        using var stateLock = new Mutex(initiallyOwned: false, _stateLockName);
+        var lockTaken = false;
+        try
+        {
+            try
+            {
+                lockTaken = stateLock.WaitOne(StateLockTimeout);
+            }
+            catch (AbandonedMutexException)
+            {
+                lockTaken = true;
+            }
+
+            if (!lockTaken)
+            {
+                return failure(new IconReplacerError(
+                    ErrorCode.Unknown,
+                    "Restore state is busy. Try the operation again."));
+            }
+
+            return operation();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return failure(CreateLockError(ex));
+        }
+        catch (IOException ex)
+        {
+            return failure(CreateLockError(ex));
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                stateLock.ReleaseMutex();
+            }
+        }
+    }
+
+    private static IconReplacerError CreateLockError(Exception exception) =>
+        new(
+            exception is UnauthorizedAccessException ? ErrorCode.PermissionDenied : ErrorCode.Unknown,
+            "Restore state could not be locked.",
+            exception.Message);
+
+    private static string CreateStateLockName(string stateFilePath)
+    {
+        var canonicalPath = Path.GetFullPath(stateFilePath).ToUpperInvariant();
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalPath)));
+        return $"Local\\IconReplacer.RestoreState.{hash}";
     }
 
     private static RestoreRecordDto ToDto(RestoreRecord record)
@@ -202,4 +320,3 @@ public sealed class RestoreRecordStore
         string? PreviousIconPath,
         int PreviousIconIndex);
 }
-

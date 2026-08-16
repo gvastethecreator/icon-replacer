@@ -74,6 +74,23 @@ public sealed class AppDiagnosticsServiceTests
             check.Id == "winapp" && check.Status == AppDiagnosticStatus.Info);
     }
 
+    [Fact]
+    public void GetDiagnosticsTreatsPendingDecisionAsStaleState()
+    {
+        using var temp = new TempDirectory();
+        var paths = IconLibraryPaths.FromRoots(temp.PathFor("user"), temp.PathFor("appdata")).Value!;
+        var service = new AppDiagnosticsService(new SetupReadinessService(
+            shellIntegrationReadiness: ShellIntegrationReadiness.DecisionPending));
+
+        var diagnostics = service.GetDiagnostics(paths);
+
+        Assert.True(diagnostics.Succeeded, diagnostics.Error.Message);
+        var check = Assert.Single(diagnostics.Value!.Checks, item => item.Id == "shell-integration");
+        Assert.Equal(AppDiagnosticStatus.Warning, check.Status);
+        Assert.Contains("stale", check.Title, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("packaged modern and classic", check.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static NativeToolingSnapshot MissingNativeTooling()
     {
         return new NativeToolingSnapshot(

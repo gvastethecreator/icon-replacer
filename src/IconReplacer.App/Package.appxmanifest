@@ -7,13 +7,14 @@
   xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
   xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
   xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:desktop9="http://schemas.microsoft.com/appx/manifest/desktop/windows10/9"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap com desktop4 desktop5">
+  IgnorableNamespaces="uap rescap com desktop4 desktop5 desktop9">
 
   <Identity
     Name="IconReplacer"
     Publisher="CN=IconReplacerDev"
-    Version="1.0.0.0" />
+    Version="1.0.0.6" />
 
   <mp:PhoneIdentity PhoneProductId="D10396B4-CC39-4383-99A2-BA8960158A68" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -55,6 +56,14 @@
                 Id="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7D"
                 Path="IconReplacer.ShellExtension.dll"
                 ThreadingModel="STA" />
+              <com:Class
+                Id="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7E"
+                Path="IconReplacer.ShellExtension.dll"
+                ThreadingModel="STA" />
+              <com:Class
+                Id="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7F"
+                Path="IconReplacer.ShellExtension.dll"
+                ThreadingModel="STA" />
             </com:SurrogateServer>
           </com:ComServer>
         </com:Extension>
@@ -64,14 +73,30 @@
               <desktop5:Verb
                 Id="IconReplacerChangeIconDirectory"
                 Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7D" />
+              <desktop5:Verb
+                Id="IconReplacerCollectionsDirectory"
+                Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7E" />
             </desktop5:ItemType>
             <desktop5:ItemType Type=".lnk">
               <desktop5:Verb
                 Id="IconReplacerChangeIconShortcut"
                 Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7D" />
+              <desktop5:Verb
+                Id="IconReplacerCollectionsShortcut"
+                Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7E" />
             </desktop5:ItemType>
           </desktop4:FileExplorerContextMenus>
         </desktop4:Extension>
+        <desktop9:Extension Category="windows.fileExplorerClassicContextMenuHandler">
+          <desktop9:FileExplorerClassicContextMenuHandler>
+            <desktop9:ExtensionHandler
+              Type="Directory"
+              Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7F" />
+            <desktop9:ExtensionHandler
+              Type=".lnk"
+              Clsid="B8F1A86D-4C52-4C53-BF72-30B59F7F0F7F" />
+          </desktop9:FileExplorerClassicContextMenuHandler>
+        </desktop9:Extension>
       </Extensions>
     </Application>
   </Applications>

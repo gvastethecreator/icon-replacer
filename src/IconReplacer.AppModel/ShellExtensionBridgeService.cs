@@ -9,7 +9,7 @@ public sealed class ShellExtensionBridgeService
     private static readonly string[] SafetyRules =
     [
         "Do not mutate files while Explorer is enumerating the context menu.",
-        "Resolve target-required commands only for one local folder or .lnk shortcut.",
+        "Resolve target-required commands only for one local folder, directory link, or .lnk shortcut.",
         "Use AppModel command ids and arguments instead of inventing native-only verbs.",
         "Defer icon mutation to the packaged app or shared apply path.",
         "Respect IconMenuOptions caps when exposing dynamic icon entries."

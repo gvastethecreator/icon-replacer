@@ -139,8 +139,8 @@ public sealed class AppActionRequestService
             SetupActionIds.ResolveShellIntegration => new SetupAction(
                 SetupActionIds.ResolveShellIntegration,
                 SetupActionSeverity.Warning,
-                "Resolve shell integration",
-                "Explorer integration is waiting for the Modern vs Classic V1 decision."),
+                "Refresh shell integration status",
+                "This setup state predates the final packaged dual Explorer decision."),
             SetupActionIds.ConfigureShellIntegration => new SetupAction(
                 SetupActionIds.ConfigureShellIntegration,
                 SetupActionSeverity.Warning,

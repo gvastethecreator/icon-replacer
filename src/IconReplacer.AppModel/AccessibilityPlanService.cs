@@ -27,13 +27,13 @@ public sealed class AccessibilityPlanService
             Requirement(
                 "keyboard-dialog-return",
                 AccessibilityRequirementCategory.Keyboard,
-                "Dialogs return focus",
-                "Pickers, confirmations, and error dialogs should restore focus to the invoking control."),
+                "The import picker returns focus",
+                "Closing or cancelling the native import picker should restore focus to Import icons."),
             Requirement(
-                "keyboard-details-reachable",
+                "keyboard-splitter-reachable",
                 AccessibilityRequirementCategory.Keyboard,
-                "Restore and error details are reachable",
-                "Record details, disabled reasons, and warning details must be reachable by keyboard."),
+                "The Collections splitter is keyboard operable",
+                "The splitter must expose a useful role and support Left and Right arrow resizing."),
             Requirement(
                 "names-icon-only-controls",
                 AccessibilityRequirementCategory.NamesAndSemantics,
@@ -45,10 +45,15 @@ public sealed class AccessibilityPlanService
                 "Icon tiles expose name and category",
                 "Catalog tiles must not rely on thumbnails alone."),
             Requirement(
-                "semantics-persistent-errors",
+                "names-restore-actions",
                 AccessibilityRequirementCategory.NamesAndSemantics,
-                "Errors are persistent UI",
-                "Errors must remain visible in the app and not be toast-only."),
+                "Restore actions identify their target",
+                "Repeated Restore buttons must include the changed target in their automation name."),
+            Requirement(
+                "semantics-persistent-status",
+                AccessibilityRequirementCategory.NamesAndSemantics,
+                "Status and errors are persistent and announced",
+                "InfoBar status must remain visible, expose title and message, and reopen when content changes."),
             Requirement(
                 "visual-high-contrast",
                 AccessibilityRequirementCategory.VisualAdaptation,
@@ -65,25 +70,25 @@ public sealed class AccessibilityPlanService
                 "Long paths wrap or elide",
                 "Long paths should wrap or elide with a reachable detail path."),
             ManualProof(
-                "proof-first-run-normal",
-                "First-run normal scaling proof",
-                "Capture first-run app state at normal scaling."),
+                "proof-library-normal",
+                "Library at normal scaling",
+                "Capture the Library surface with real collections and previews at normal scaling."),
             ManualProof(
-                "proof-first-run-200",
-                "First-run 200 percent proof",
-                "Capture first-run app state at 200 percent scaling."),
+                "proof-library-200",
+                "Library at 200 percent scaling",
+                "Capture Library, toolbar, Collections, and preview labels at 200 percent scaling."),
             ManualProof(
                 "proof-high-contrast",
                 "High contrast proof",
                 "Capture app state with high contrast enabled."),
             ManualProof(
-                "proof-keyboard-import-restore",
-                "Keyboard import and restore proof",
-                "Capture notes or screenshots for keyboard-only import and restore flows."),
+                "proof-keyboard-library",
+                "Keyboard-only Library proof",
+                "Capture navigation, search, toolbar, preview-size, collection, and splitter keyboard notes."),
             ManualProof(
-                "proof-error-state",
-                "Error state proof",
-                "Capture a persistent error state with reachable details.")
+                "proof-keyboard-recent-status",
+                "Keyboard restore and status proof",
+                "Capture a target-specific Restore action and an announced persistent status or error.")
         };
     }
 
@@ -92,69 +97,30 @@ public sealed class AccessibilityPlanService
         return new[]
         {
             Surface(
-                "home",
-                "Home",
-                "First screen with readiness, setup actions, locations, menu counts, and history counts.",
-                "Import icons",
-                "Open Icon Library",
-                "Show diagnostics",
-                "Configure shell integration"),
-            Surface(
-                "icon-browser",
-                "Icon Browser",
-                "Search, category filters, warning review, and icon selection.",
+                "library",
+                "Library",
+                "Searchable icon previews, collection filters, preview sizing, import, refresh, and library access.",
                 "Search icons",
-                "Filter by category",
-                "Open icon details",
-                "Import icons"),
+                "Filter by collection",
+                "Resize Collections panel",
+                "Change icon preview size",
+                "Refresh library",
+                "Import icons",
+                "Open Icon Library"),
             Surface(
-                "icon-details",
-                "Icon Details",
-                "Selected icon metadata, image entries, and recommended image.",
-                "Use selected icon",
-                "Copy icon path",
-                "Open containing folder"),
-            Surface(
-                "history",
+                "recent",
                 "Recent Changes",
-                "Filtered restore history with enabled, warning, and disabled restore actions.",
-                "Filter history",
-                "Preview restore",
-                "Restore selected change"),
+                "Changed targets with target-specific restore actions and status details.",
+                "Review changed targets",
+                "Restore original icon"),
             Surface(
-                "restore-preview",
-                "Restore Preview",
-                "Confirmation state before restore mutation.",
-                "Confirm restore",
-                "Cancel restore",
-                "Review disabled reason"),
-            Surface(
-                "diagnostics",
-                "Diagnostics",
-                "Readiness, blockers, app locations, shell status, and tooling checks.",
-                "Refresh diagnostics",
-                "Open app data",
-                "Open package plan"),
-            Surface(
-                "shell-plan",
-                "Shell Integration Plan",
-                "Modern shell path, prerequisites, manifest contract, and fallback status.",
-                "Review shell bridge",
-                "Review manifest contract",
-                "Review package plan"),
-            Surface(
-                "shell-bridge",
-                "Shell Bridge",
-                "Native Explorer command bridge preview, resolved arguments, menu caps, and safety rules.",
-                "Review resolved commands",
-                "Review safety rules",
-                "Open diagnostics"),
-            Surface(
-                "package-plan",
-                "Package Plan",
-                "Install, uninstall, signing, proof, and data-preservation gates.",
-                "Review install blockers",
-                "Review uninstall policy")
+                "settings",
+                "Settings",
+                "Theme preference and the full Icon Library path.",
+                "Use system theme",
+                "Use Light theme",
+                "Use Dark theme",
+                "Open Icon Library")
         };
     }
 

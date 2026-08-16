@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using IconReplacer.AppModel;
 using IconReplacer.Core;
 
@@ -2308,124 +2309,226 @@ static string? FindWindowsAppsTool(string fileName)
 
 static NativeToolingSnapshot DetectNativeTooling()
 {
-    var compiler = RunProcess("where.exe", "cl");
-    var msbuild = RunProcess("where.exe", "msbuild");
-    var cmake = RunProcess("where.exe", "cmake");
-    var visualStudioTooling = FindVisualStudioNativeTooling();
-    var compilerAvailable = compiler.ExitCode == 0 || visualStudioTooling.CompilerPath is not null;
-    var msBuildAvailable = msbuild.ExitCode == 0 || visualStudioTooling.MsBuildPath is not null;
-    var cmakeAvailable = cmake.ExitCode == 0;
-
-    return new NativeToolingSnapshot(
-        IsChecked: true,
-        compilerAvailable,
-        msBuildAvailable,
-        cmakeAvailable,
-        compiler.ExitCode == 0
-            ? "cl.exe is available."
-            : visualStudioTooling.CompilerPath is not null
-                ? $"cl.exe is available through Visual Studio developer tools: {visualStudioTooling.CompilerPath}"
-                : "cl.exe was not found on PATH or in Visual Studio C++ Build Tools.",
-        msbuild.ExitCode == 0
-            ? "Visual Studio MSBuild is available."
-            : visualStudioTooling.MsBuildPath is not null
-                ? $"Visual Studio MSBuild is available through Visual Studio developer tools: {visualStudioTooling.MsBuildPath}"
-                : "Visual Studio MSBuild was not found on PATH or in Visual Studio Build Tools.",
-        cmakeAvailable
-            ? "CMake is available."
-            : "CMake was not found on PATH.");
-}
-
-static (string? InstallationPath, string? VsDevCmdPath, string? CompilerPath, string? MsBuildPath) FindVisualStudioNativeTooling()
-{
-    var installationPath = FindVisualStudioInstallationPath();
-    if (string.IsNullOrWhiteSpace(installationPath) || !Directory.Exists(installationPath))
-    {
-        return (null, null, null, null);
-    }
-
-    var vsDevCmdPath = Path.Combine(installationPath, "Common7", "Tools", "VsDevCmd.bat");
-    if (!File.Exists(vsDevCmdPath))
-    {
-        vsDevCmdPath = null;
-    }
-
-    var compilerPath = FindPreferredFile(installationPath, "cl.exe", "Hostx64", "x64");
-    var msBuildPath = Path.Combine(installationPath, "MSBuild", "Current", "Bin", "amd64", "MSBuild.exe");
-    if (!File.Exists(msBuildPath))
-    {
-        msBuildPath = Path.Combine(installationPath, "MSBuild", "Current", "Bin", "MSBuild.exe");
-    }
-
-    if (!File.Exists(msBuildPath))
-    {
-        msBuildPath = FindPreferredFile(installationPath, "MSBuild.exe", "MSBuild", "Current");
-    }
-
-    return (
-        installationPath,
-        vsDevCmdPath,
-        compilerPath,
-        File.Exists(msBuildPath) ? msBuildPath : null);
-}
-
-static string? FindVisualStudioInstallationPath()
-{
-    var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-    var vsWherePath = Path.Combine(programFilesX86, "Microsoft Visual Studio", "Installer", "vswhere.exe");
-    if (File.Exists(vsWherePath))
-    {
-        var result = RunProcess(
-            vsWherePath,
-            "-latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath");
-        var path = result.Output
-            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault(Directory.Exists);
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            return path;
-        }
-    }
-
-    var candidates = new[]
-    {
-        Path.Combine(programFilesX86, "Microsoft Visual Studio", "2022", "BuildTools"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft Visual Studio", "18", "Community")
-    };
-
-    return candidates.FirstOrDefault(Directory.Exists);
-}
-
-static string? FindPreferredFile(
-    string root,
-    string fileName,
-    string preferredSegment,
-    string secondaryPreferredSegment)
-{
-    try
-    {
-        return Directory
-            .EnumerateFiles(root, fileName, SearchOption.AllDirectories)
-            .OrderByDescending(path => path.Contains(preferredSegment, StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(path => path.Contains(secondaryPreferredSegment, StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault();
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return null;
-    }
-    catch (DirectoryNotFoundException)
-    {
-        return null;
-    }
+    return NativeToolingDetector.Detect();
 }
 
 static PackagingPlanInputs DetectPackagingInputs(WinUiToolingSnapshot? winUiTooling = null)
 {
+    var repositoryRoots = CandidateRepositoryRoots()
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+    var packageBuilt = repositoryRoots.Any(HasValidPackageBuildEvidence);
+    var signingAvailable = repositoryRoots.Any(root =>
+        File.Exists(Path.Combine(root, "artifacts", "package", "IconReplacer.Dev.pfx")) &&
+        File.Exists(Path.Combine(root, "artifacts", "package", "IconReplacer.Dev.cer")) &&
+        HasValidPackageBuildEvidence(root));
+    var installProofCaptured = repositoryRoots.Any(root =>
+        HasValidLifecycleEvidence(root, "lifecycle-install-evidence.json", expectInstalled: true) ||
+        HasValidLifecycleEvidence(root, "lifecycle-evidence.json", expectInstalled: false));
+    var uninstallProofCaptured = repositoryRoots.Any(root =>
+        HasValidLifecycleEvidence(root, "lifecycle-evidence.json", expectInstalled: false));
+
     return PackagingPlanInputs.FromTooling(winUiTooling ?? DetectWinUiTooling(), DetectNativeTooling()) with
     {
-        NativeShellExtensionBuilt = NativeShellExtensionExists()
+        PackageIdentityBuilt = packageBuilt,
+        NativeShellExtensionBuilt = NativeShellExtensionExists(),
+        DevSigningAvailable = signingAvailable,
+        InstallerBuilt = packageBuilt,
+        InstallProofCaptured = installProofCaptured,
+        UninstallProofCaptured = uninstallProofCaptured
     };
+}
+
+static bool HasValidPackageBuildEvidence(string repositoryRoot)
+{
+    var packageRoot = Path.Combine(repositoryRoot, "artifacts", "package");
+    var evidencePath = Path.Combine(packageRoot, "build-evidence.json");
+    if (!File.Exists(evidencePath))
+    {
+        return false;
+    }
+
+    return ReadJsonEvidence(evidencePath, root =>
+    {
+        if (!root.TryGetProperty("packagePath", out var packagePathProperty) ||
+            !root.TryGetProperty("signatureStatus", out var signatureStatusProperty) ||
+            !root.TryGetProperty("packageSha256", out var packageSha256Property) ||
+            !root.TryGetProperty("packageLength", out var packageLengthProperty))
+        {
+            return false;
+        }
+
+        var packagePath = packagePathProperty.GetString();
+        return !string.IsNullOrWhiteSpace(packagePath) &&
+            File.Exists(packagePath) &&
+            string.Equals(signatureStatusProperty.GetString(), "Valid", StringComparison.OrdinalIgnoreCase) &&
+            packageLengthProperty.TryGetInt64(out var expectedLength) &&
+            new FileInfo(packagePath).Length == expectedLength &&
+            FileMatchesSha256(packagePath, packageSha256Property.GetString());
+    });
+}
+
+static bool HasValidLifecycleEvidence(
+    string repositoryRoot,
+    string fileName,
+    bool expectInstalled)
+{
+    var evidencePath = Path.Combine(repositoryRoot, "artifacts", "package", fileName);
+    if (!File.Exists(evidencePath))
+    {
+        return false;
+    }
+
+    return ReadJsonEvidence(evidencePath, root =>
+    {
+        if (!root.TryGetProperty("keptInstalled", out var keptInstalledProperty) ||
+            keptInstalledProperty.ValueKind is not JsonValueKind.True and not JsonValueKind.False ||
+            keptInstalledProperty.GetBoolean() != expectInstalled ||
+            !root.TryGetProperty("install", out var installProperty) ||
+            installProperty.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("packagePath", out var packagePathProperty) ||
+            !root.TryGetProperty("packageSha256", out var packageSha256Property) ||
+            string.IsNullOrWhiteSpace(packagePathProperty.GetString()) ||
+            !FileMatchesSha256(packagePathProperty.GetString()!, packageSha256Property.GetString()) ||
+            !HasPreservedContextMenuEvidence(root) ||
+            !HasPreservedExplorerEvidence(root))
+        {
+            return false;
+        }
+
+        if (expectInstalled)
+        {
+            return installProperty.TryGetProperty("shellManifestRegistered", out var shellRegistered) &&
+                shellRegistered.ValueKind == JsonValueKind.True &&
+                installProperty.TryGetProperty("classicShellManifestRegistered", out var classicRegistered) &&
+                classicRegistered.ValueKind == JsonValueKind.True &&
+                installProperty.TryGetProperty("applicationIconPresent", out var appIconPresent) &&
+                appIconPresent.ValueKind == JsonValueKind.True &&
+                installProperty.TryGetProperty("iconLibraryPreserved", out var installedLibraryPreserved) &&
+                installedLibraryPreserved.ValueKind == JsonValueKind.True &&
+                installProperty.TryGetProperty("restoreStatePreserved", out var installedRestoreStatePreserved) &&
+                installedRestoreStatePreserved.ValueKind == JsonValueKind.True;
+        }
+
+        return root.TryGetProperty("uninstall", out var uninstallProperty) &&
+            uninstallProperty.ValueKind == JsonValueKind.Object &&
+            uninstallProperty.TryGetProperty("packageRemoved", out var packageRemoved) &&
+            packageRemoved.ValueKind == JsonValueKind.True &&
+            uninstallProperty.TryGetProperty("shellIntegrationRemovedWithPackage", out var shellRemoved) &&
+            shellRemoved.ValueKind == JsonValueKind.True &&
+            uninstallProperty.TryGetProperty("iconLibraryPreserved", out var libraryPreserved) &&
+            libraryPreserved.ValueKind == JsonValueKind.True &&
+            uninstallProperty.TryGetProperty("restoreStatePreserved", out var restoreStatePreserved) &&
+            restoreStatePreserved.ValueKind == JsonValueKind.True;
+    });
+}
+
+static bool FileMatchesSha256(string path, string? expectedSha256)
+{
+    if (string.IsNullOrWhiteSpace(expectedSha256) || !File.Exists(path))
+    {
+        return false;
+    }
+
+    try
+    {
+        using var stream = File.OpenRead(path);
+        var actualSha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream));
+        return string.Equals(actualSha256, expectedSha256, StringComparison.OrdinalIgnoreCase);
+    }
+    catch (IOException)
+    {
+        return false;
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return false;
+    }
+}
+
+static bool HasPreservedContextMenuEvidence(JsonElement root)
+{
+    if (!TryGetContextMenuHash(root, "contextMenuBefore", out var baselineHash) ||
+        !TryGetContextMenuHash(root, "contextMenuAfterFreshRemove", out var afterFreshRemoveHash) ||
+        !TryGetContextMenuHash(root, "contextMenuAfterInstall", out var afterInstallHash))
+    {
+        return false;
+    }
+
+    if (!string.Equals(baselineHash, afterFreshRemoveHash, StringComparison.OrdinalIgnoreCase) ||
+        !string.Equals(baselineHash, afterInstallHash, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    if (!root.TryGetProperty("keptInstalled", out var keptInstalledProperty) ||
+        keptInstalledProperty.ValueKind != JsonValueKind.False)
+    {
+        return true;
+    }
+
+    return root.TryGetProperty("uninstall", out var uninstallProperty) &&
+        uninstallProperty.ValueKind == JsonValueKind.Object &&
+        TryGetContextMenuHash(uninstallProperty, "contextMenuAfterUninstall", out var afterUninstallHash) &&
+        string.Equals(baselineHash, afterUninstallHash, StringComparison.OrdinalIgnoreCase);
+}
+
+static bool TryGetContextMenuHash(JsonElement parent, string propertyName, out string hash)
+{
+    hash = string.Empty;
+    return parent.TryGetProperty(propertyName, out var snapshot) &&
+        snapshot.ValueKind == JsonValueKind.Object &&
+        snapshot.TryGetProperty("contentSha256", out var hashProperty) &&
+        !string.IsNullOrWhiteSpace(hash = hashProperty.GetString() ?? string.Empty);
+}
+
+static bool HasPreservedExplorerEvidence(JsonElement root)
+{
+    if (!root.TryGetProperty("explorerBefore", out var explorerBefore) ||
+        !root.TryGetProperty("explorerAfter", out var explorerAfter) ||
+        !TryGetStringArray(explorerBefore, "processIdentities", out var beforeIdentities) ||
+        !TryGetStringArray(explorerAfter, "processIdentities", out var afterIdentities))
+    {
+        return false;
+    }
+
+    return beforeIdentities.SequenceEqual(afterIdentities, StringComparer.Ordinal);
+}
+
+static bool TryGetStringArray(
+    JsonElement parent,
+    string propertyName,
+    out IReadOnlyList<string> values)
+{
+    values = [];
+    if (!parent.TryGetProperty(propertyName, out var array) ||
+        array.ValueKind != JsonValueKind.Array)
+    {
+        return false;
+    }
+
+    values = array.EnumerateArray()
+        .Where(item => item.ValueKind == JsonValueKind.String)
+        .Select(item => item.GetString() ?? string.Empty)
+        .ToArray();
+    return values.Count == array.GetArrayLength();
+}
+
+static bool ReadJsonEvidence(string path, Func<JsonElement, bool> predicate)
+{
+    try
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return predicate(document.RootElement);
+    }
+    catch (IOException)
+    {
+        return false;
+    }
+    catch (JsonException)
+    {
+        return false;
+    }
 }
 
 static bool NativeShellExtensionExists()
@@ -2576,14 +2679,15 @@ static (bool Succeeded, int ExitCode, ReleaseReadinessInputs? Inputs) ParseRelea
         return (false, 64, null);
     }
 
-    var packagingInputs = DetectPackagingInputs() with
+    var detectedPackagingInputs = DetectPackagingInputs();
+    var packagingInputs = detectedPackagingInputs with
     {
-        PackageIdentityBuilt = flags.Contains("--package-identity"),
-        NativeShellExtensionBuilt = flags.Contains("--native-extension"),
-        DevSigningAvailable = flags.Contains("--dev-signing"),
-        InstallerBuilt = flags.Contains("--installer"),
-        InstallProofCaptured = flags.Contains("--install-proof"),
-        UninstallProofCaptured = flags.Contains("--uninstall-proof")
+        PackageIdentityBuilt = detectedPackagingInputs.PackageIdentityBuilt || flags.Contains("--package-identity"),
+        NativeShellExtensionBuilt = detectedPackagingInputs.NativeShellExtensionBuilt || flags.Contains("--native-extension"),
+        DevSigningAvailable = detectedPackagingInputs.DevSigningAvailable || flags.Contains("--dev-signing"),
+        InstallerBuilt = detectedPackagingInputs.InstallerBuilt || flags.Contains("--installer"),
+        InstallProofCaptured = detectedPackagingInputs.InstallProofCaptured || flags.Contains("--install-proof"),
+        UninstallProofCaptured = detectedPackagingInputs.UninstallProofCaptured || flags.Contains("--uninstall-proof")
     };
 
     return (true, 0, new ReleaseReadinessInputs(

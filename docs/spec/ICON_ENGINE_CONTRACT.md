@@ -69,6 +69,18 @@ Every product apply operation must persist the Restore Record before it reports 
 
 Every product restore operation must update the Restore Record after disk restore before it reports full success.
 
+Restore-state persistence must serialize cooperating app and CommandHost processes
+for each canonical state-file path. Readers must observe complete snapshots only.
+Writers must flush a same-directory temporary file before atomic replacement;
+replacement failure must retain the previous valid state and clean temporary output
+when possible.
+
+Apply and restore operations must also serialize by canonical Target path across
+the management app and CommandHost. The Target mutation, Explorer notification,
+and corresponding restore-state update form one guarded operation. A restore by
+record ID must re-read that record after acquiring the Target lock so a stale
+concurrent request cannot restore the same record twice.
+
 If a mutation fails after partial writes:
 
 - roll back when safe,
@@ -76,9 +88,17 @@ If a mutation fails after partial writes:
 - report the exact recovery status,
 - never claim success solely because one step succeeded.
 
-If the target icon changes but restore-state persistence fails, the product operation reports `PartialFailure`.
+If the target icon changes but restore-state persistence fails, the product
+operation must attempt automatic Target rollback while still holding the
+per-Target lock. Successful rollback returns the underlying persistence error
+and states that the Target was restored. If rollback also fails, the operation
+reports `PartialFailure` with both save and rollback causes.
 
-If disk restore succeeds but restore-state persistence fails, the product operation reports `PartialFailure`.
+If disk restore succeeds but its `Restored` status cannot be persisted, the
+product operation must reapply the recorded icon while still holding the
+per-Target lock so disk state remains consistent with the stored `Applied`
+record. Successful reapply returns the underlying persistence error. If reapply
+also fails, the operation reports `PartialFailure` with both causes.
 
 ## Result Model
 
@@ -100,7 +120,8 @@ Every operation should distinguish:
 It must:
 
 - enable `Change icon...` only for exactly one selected target,
-- support local folders and local `.lnk` shortcuts,
+- support local folders, local directory junctions/symbolic links, and local `.lnk` shortcuts,
+- preserve the selected directory-link path as the Target identity while rejecting links whose resolved chain is remote, missing, cyclic, or too deep,
 - reject multi-selection in V1,
 - reject missing, invalid, remote, web-backed, and unsupported file targets before any mutation,
 - return a stable status plus an `IconReplacerError` so UI and shell surfaces can show or disable commands consistently.
@@ -120,7 +141,9 @@ It must:
 
 ## AppModel Change Operation
 
-`AppLaunchRequestService` is the shared Explorer-to-app handoff contract for the accepted Modern shell path.
+`AppLaunchRequestService` preserves the packaged-app activation contract used by
+CLI/model proof. The production Explorer path is the zero-window command host
+defined by ADR-0009 and ADR-0011.
 
 It must:
 
@@ -136,7 +159,7 @@ It must:
 It must:
 
 - validate the shell selection before opening any picker,
-- enable the picker only for a single local folder or `.lnk` shortcut,
+- enable the picker only for a single local folder, directory link, or `.lnk` shortcut,
 - prepare the Icon Library folders before a valid picker opens,
 - request a single-select `.ico` picker,
 - use the Icon Library root as the initial directory,
@@ -158,7 +181,7 @@ It must:
 
 - validate the shell selection before validating or importing the chosen icon,
 - reject unsupported selections before creating `.icons\Imported` files or restore history,
-- call `IconApplyService` only after a single local folder or `.lnk` target is accepted,
+- call `IconApplyService` only after a single local folder, directory link, or `.lnk` target is accepted,
 - return both the accepted shell-selection evaluation and apply result for UI diagnostics.
 
 `IconMenuApplyService` is the shared direct dynamic-menu workflow for a future submenu icon choice.
@@ -229,11 +252,12 @@ It must:
 - delegate application to `IconMenuApplyService` so restore history and icon validation stay centralized,
 - return the selected menu item plus the normal apply/restore-record result for UI, CLI, and shell diagnostics.
 
-`ShellManifestContractService` is the shared Modern MSIX shell manifest source before packaging.
+`ShellManifestContractService` is the shared packaged modern/classic shell manifest source.
 
 It must:
 
 - define `windows.comServer` and `windows.fileExplorerContextMenus` manifest categories,
+- define `windows.fileExplorerClassicContextMenuHandler` registration for the classic path,
 - keep one stable Explorer command CLSID for the native extension,
 - use `IconReplacer.ShellExtension.dll` and `STA` for the COM class contract,
 - expose required native interfaces: `IExplorerCommand` and `IExplorerCommandState`,
@@ -424,11 +448,11 @@ It must:
 
 It must:
 
-- report Modern MSIX plus native `IExplorerCommand` as the selected V1 path,
-- report Classic HKCU verbs as fallback/prototype only,
+- report packaged modern `IExplorerCommand` plus packaged classic handler as the selected V1 path,
+- report raw Classic HKCU verbs as retired,
 - distinguish decision status from Explorer registration readiness,
 - surface required V1 prerequisites such as WinUI templates, `winapp`, package identity, native shell extension, and Explorer registration,
-- report missing `winapp` as blocking for the Modern path without attempting installation.
+- report missing `winapp` as blocking for the packaged path without attempting installation.
 
 ## AppModel Release Readiness Operation
 
@@ -437,7 +461,7 @@ It must:
 It must:
 
 - compose build, test, CLI proof, diagnostics, package, accessibility, manual Explorer, and release evidence gates,
-- keep the accepted Modern MSIX plus native `IExplorerCommand` integration path explicit,
+- keep the accepted packaged modern/classic integration path explicit,
 - reuse package-plan, diagnostics, and accessibility snapshots rather than duplicating those checks,
 - expose evidence commands or document paths for every release item,
 - mark the release not ready while blockers or warnings remain,

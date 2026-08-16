@@ -1,5 +1,19 @@
 # Verification
 
+## GitHub Release Candidate `v1.0.0-rc.1` (2026-07-15)
+
+- MSIX package version: `1.0.0.6`.
+- Managed Release suite: 289 passed, 0 failed.
+- WinUI/native/package Release build: pass.
+- Native shell smoke: pass with 187 commands and 78.1 ms query.
+- Public bundle: MSIX, CER, metadata, and SHA-256 manifest only; no PFX.
+- MSIX: 47,991,336 bytes, valid `CN=IconReplacerDev` signature, SHA-256
+  `5D22F3D823924B876A7B5C687595FAB4F4813783CDE51E03C1FF48E621563563`.
+- Certificate thumbprint: `F235B1142A11E383C0673599772334C0F0797F4A`.
+- Verdict: suitable for a GitHub prerelease with explicit development-certificate
+  instructions. Not suitable for a stable/production-trusted release until the
+  remaining manual and signing gates are closed.
+
 Status: proposed
 Date: 2026-07-07
 
@@ -103,7 +117,10 @@ dotnet run --no-build --project src\IconReplacer.Cli -- history stale
 
 `change` should run the post-picker flow: validate the selected target first, then apply the chosen icon through the shared AppModel path. Unsupported selections must fail before import or restore-state writes.
 
-`shell-plan` should show the accepted Modern shell integration path: MSIX package identity plus native `IExplorerCommand`, Classic HKCU fallback/prototype status, required prerequisites, and missing `winapp` as a blocker when absent.
+`shell-plan` should show the accepted packaged dual integration path: MSIX
+identity, native modern `IExplorerCommand`, packaged classic handler, retired raw
+HKCU verbs, required prerequisites, and missing `winapp` as a blocker when
+absent.
 
 `shell-manifest` should show the future packaged manifest contract without registering Explorer: `windows.comServer`, `windows.fileExplorerContextMenus`, one stable CLSID, `IconReplacer.ShellExtension.dll`, `STA`, `IExplorerCommand`/`IExplorerCommandState`, and `Directory` plus `.lnk` targets.
 
@@ -175,7 +192,10 @@ For WinUI launch verification, use `BuildAndRun.ps1` from `winui-dev-workflow`; 
 
 For WinUI action verification, inspect the launched packaged app with `winapp ui`. `ImportIconsButton`, `StatusInfoBar`, list content, and row-level `Restore` buttons should be visible through UI Automation. Do not open the native file picker in unattended automation unless the automation will also choose/cancel the dialog.
 
-For packaged Change Icon activation verification, write `%AppData%\Icon Replacer\pending-activation.args` with `change-icon --target "<folder>" --target-kind folder`, launch the packaged app with `winapp run <app-output> --detach --json`, and confirm `winapp ui list-windows -a IconReplacer.App` includes both `Icon Replacer` and the modal `Change icon` dialog. Kill the test process afterward if the dialog is intentionally left open.
+The WinUI app must ignore Explorer command arguments and must not read
+`%AppData%\Icon Replacer\pending-activation.args`. Direct picker and menu-apply
+proof belong to `IconReplacer.CommandHost`; normal app launch must show only the
+management window.
 
 `history` should show health markers such as `restorable`, `not-restorable`, `target-missing`, or `applied-icon-missing`. Filters should support `all`, `restorable`, `applied`, `restored`, and `stale`. Deleted temporary proof targets are expected to appear as `target-missing` while their restored history remains preserved.
 
@@ -199,4 +219,38 @@ Recommended future path:
 
 - `artifacts/manual/` for screenshots,
 - `artifacts/logs/` for CLI and install logs,
-- `artifacts/reg/` for registry exports when Classic Shell Integration is used.
+- `artifacts/context-menu-recovery/` for normalized package, shell-registration, Explorer, and StartAllBack snapshots.
+
+## Gallery First Verification (2026-07-13)
+
+```powershell
+dotnet build src\IconReplacer.App\IconReplacer.App.csproj -p:Platform=x64 -p:BuildNativeShellExtension=false
+dotnet test IconReplacer.slnx --no-restore
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\gallery-first-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\automated-v18
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\responsive-grid-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\responsive-grid-v12
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\accessibility-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\accessibility-100 -MinimumScalePercent 100
+# Launch on a 200% display before this second accessibility run.
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\ui\accessibility-ui.ps1 -AppPid <pid> -ArtifactDir artifacts\ui-tests\gallery-first\accessibility-200 -MinimumScalePercent 200
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Build-NativeShellExtension.ps1 -Configuration Release -Platform x64
+artifacts\native\x64\Release\IconReplacer.ShellExtension.Smoke.exe artifacts\native\x64\Release\IconReplacer.ShellExtension.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Test-MsixLifecycle.ps1 -ApproveExplorerRegistration
+```
+
+Expected current result:
+
+- App build: pass with 0 warnings and 0 errors.
+- .NET suite: 289 passed, 0 failed, including apply/restore persistence compensation for folders/shortcuts and double failures, per-target concurrent apply/restore, restore-state concurrency, adaptive DPI thumbnail decoding, rounded high-resolution official assets, GitHub release parsing/update states, manifest-derived package versioning, guarded upgrade/deployment evidence, and the existing WinUI/shell and directory-link tests.
+- Gallery First UI Automation: 15 passed, 0 failed, including centered startup, Library/About navigation, and keyboard resize of the Collections pane.
+- Accessibility source contracts: pass for Gallery First/About surface names, target-specific restore names, polite live regions, splitter semantics, and adaptive 200% toolbar states.
+- Accessibility UI Automation: 9/9 pass at the machine's 125% scale against the installed high-resolution candidate, covering Library names, DPI, toolbar fit, keyboard focus, preview names, About/version/credits/update status, and return navigation. The 200% and High Contrast runs remain open.
+- Responsive grid: 3/6/8 columns across compact/reference/wide widths with stable cell widths and gaps.
+- Navigation: expanded pane measures 184 logical px; the compact rail remains available.
+- Resize performance: pane-width writes are coalesced to the render loop, gallery metrics update once after drag, and one shared metrics object replaces per-icon layout notifications.
+- Native COM smoke: modern commands are enabled normally and hidden after classic `IObjectWithSelection` dispatch; callback-measured and callback-drawn 32-bit ARGB folder/shortcut previews, the 242-command cap, constrained 8-id range, and 250 ms full-catalog query budget pass.
+- Snapshot-only guard: 57 unrelated entries keep normalized hash `A7C938435CB53F206BC26A2A9698273F36E8E7F03F427F0AF92BF9BD493B99C1` without package mutation; the previous Icon Replacer candidate remains installed.
+- Deployment proof: signed candidate `1.0.0.5` upgraded the matching installed identity through the explicit approval path and is active in Explorer.
+- Official icon contract: canonical 2048x2048 light/dark source hashes pass; deterministic regeneration produces rounded 512 px display PNGs, nine-frame ICOs, light/dark taskbar variants, and identical fallback/light ICO bytes.
+- Signed `1.0.0.5` candidate MSIX: `07165F5CD50912C5DB00713652A22F3FC8253C57A80BC809DB713B5BF587CAE7`, 48,592,977 bytes, valid `CN=IconReplacerDev` signature.
+- MSIX lifecycle: exact-package guarded upgrade, Explorer reload, 185-file Icon Library preservation, restore-state preservation, and unrelated-handler preservation pass. Clean uninstall proof remains open.
+- Design QA: `design-qa.md` reports `final result: passed` with same-state Light/Dark comparison boards.
+- Explorer registration: `1.0.0.5` is installed. The classic folder menu visually exposes one grouped `Change icon...` plus `Icon collections` pair with official app icons and preserved unrelated entries; direct picker launch passes. Final nested-preview capture and the remaining target/apply/restore matrix remain open.

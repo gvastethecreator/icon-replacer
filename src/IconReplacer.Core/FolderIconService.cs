@@ -19,25 +19,16 @@ public sealed class FolderIconService
         string iconPath,
         IconLibraryPaths libraryPaths)
     {
-        if (FileSystemPathPolicy.IsRemoteOrUnsupported(folderPath))
+        var folderValidation = FileSystemPathPolicy.ValidateExistingLocalDirectory(folderPath);
+        if (!folderValidation.Succeeded || folderValidation.Value is null)
         {
-            return OperationResult<FolderIconApplyResult>.Failure(new IconReplacerError(
-                ErrorCode.RemotePathUnsupported,
-                "Remote or web-backed folders are not supported in V1."));
+            return OperationResult<FolderIconApplyResult>.Failure(folderValidation.Error);
         }
 
-        var targetResult = TargetItem.FromShellSelection(folderPath, isDirectory: true);
+        var targetResult = TargetItem.FromShellSelection(folderValidation.Value, isDirectory: true);
         if (!targetResult.Succeeded || targetResult.Value is null)
         {
             return OperationResult<FolderIconApplyResult>.Failure(targetResult.Error);
-        }
-
-        if (!Directory.Exists(targetResult.Value.FullPath))
-        {
-            return OperationResult<FolderIconApplyResult>.Failure(new IconReplacerError(
-                ErrorCode.PathNotFound,
-                "The folder target does not exist.",
-                targetResult.Value.FullPath));
         }
 
         var importedIcon = _importer.Import(iconPath, libraryPaths);
@@ -47,24 +38,25 @@ public sealed class FolderIconService
         }
 
         var desktopIniPath = Path.Combine(targetResult.Value.FullPath, "desktop.ini");
-        var desktopIniExisted = File.Exists(desktopIniPath);
-        var previousDesktopIniAttributes = desktopIniExisted ? File.GetAttributes(desktopIniPath) : (FileAttributes?)null;
-        var previousFolderAttributes = File.GetAttributes(targetResult.Value.FullPath);
-        var document = DesktopIniDocument.Load(desktopIniPath);
-        var previousValues = document.CaptureValues(DesktopIniDocument.ShellClassInfoSection, IconKeys);
-        var snapshot = new FolderRestoreSnapshot(
-            desktopIniExisted,
-            previousValues,
-            previousFolderAttributes,
-            previousDesktopIniAttributes);
-
-        var restoreRecord = RestoreRecord.CreatePending(
-            targetResult.Value,
-            importedIcon.Value.FullPath,
-            snapshot);
+        FolderFileSystemSnapshot? fileSystemSnapshot = null;
+        var mutationStarted = false;
 
         try
         {
+            fileSystemSnapshot = CaptureFileSystemState(targetResult.Value.FullPath, desktopIniPath);
+            var document = DesktopIniDocument.Load(desktopIniPath);
+            var previousValues = document.CaptureValues(DesktopIniDocument.ShellClassInfoSection, IconKeys);
+            var snapshot = new FolderRestoreSnapshot(
+                fileSystemSnapshot.DesktopIniExisted,
+                previousValues,
+                fileSystemSnapshot.FolderAttributes,
+                fileSystemSnapshot.DesktopIniAttributes);
+            var restoreRecord = RestoreRecord.CreatePending(
+                targetResult.Value,
+                importedIcon.Value.FullPath,
+                snapshot);
+
+            mutationStarted = true;
             PrepareDesktopIniForWrite(desktopIniPath);
 
             document.SetValue(
@@ -76,7 +68,9 @@ public sealed class FolderIconService
             document.Save(desktopIniPath);
 
             File.SetAttributes(desktopIniPath, File.GetAttributes(desktopIniPath) | FileAttributes.Hidden | FileAttributes.System);
-            File.SetAttributes(targetResult.Value.FullPath, previousFolderAttributes | FileAttributes.ReadOnly);
+            File.SetAttributes(
+                targetResult.Value.FullPath,
+                fileSystemSnapshot.FolderAttributes | FileAttributes.ReadOnly);
 
             _changeNotifier.NotifyUpdated(targetResult.Value.FullPath);
 
@@ -88,17 +82,27 @@ public sealed class FolderIconService
         }
         catch (UnauthorizedAccessException ex)
         {
+            var rollbackError = mutationStarted && fileSystemSnapshot is not null
+                ? TryRestoreFileSystemState(targetResult.Value.FullPath, desktopIniPath, fileSystemSnapshot)
+                : null;
             return OperationResult<FolderIconApplyResult>.Failure(new IconReplacerError(
-                ErrorCode.PermissionDenied,
-                "The folder icon could not be changed.",
-                ex.Message));
+                rollbackError is null ? ErrorCode.PermissionDenied : ErrorCode.PartialFailure,
+                rollbackError is null
+                    ? "The folder icon could not be changed. The target was left unchanged."
+                    : "The folder icon change failed and the previous target state could not be restored completely.",
+                FailureDetail(ex, rollbackError)));
         }
         catch (IOException ex)
         {
+            var rollbackError = mutationStarted && fileSystemSnapshot is not null
+                ? TryRestoreFileSystemState(targetResult.Value.FullPath, desktopIniPath, fileSystemSnapshot)
+                : null;
             return OperationResult<FolderIconApplyResult>.Failure(new IconReplacerError(
                 ErrorCode.PartialFailure,
-                "The folder icon change failed before completion.",
-                ex.Message));
+                rollbackError is null
+                    ? "The folder icon change failed before completion. The target was left unchanged."
+                    : "The folder icon change failed and the previous target state could not be restored completely.",
+                FailureDetail(ex, rollbackError)));
         }
     }
 
@@ -112,19 +116,22 @@ public sealed class FolderIconService
                 "The restore record is not for a folder target."));
         }
 
-        if (!Directory.Exists(restoreRecord.Target.FullPath))
+        var folderValidation = FileSystemPathPolicy.ValidateExistingLocalDirectory(
+            restoreRecord.Target.FullPath);
+        if (!folderValidation.Succeeded)
         {
-            return OperationResult<FolderIconRestoreResult>.Failure(new IconReplacerError(
-                ErrorCode.PathNotFound,
-                "The folder target no longer exists.",
-                restoreRecord.Target.FullPath));
+            return OperationResult<FolderIconRestoreResult>.Failure(folderValidation.Error);
         }
 
         var desktopIniPath = Path.Combine(restoreRecord.Target.FullPath, "desktop.ini");
-        var document = DesktopIniDocument.Load(desktopIniPath);
+        FolderFileSystemSnapshot? fileSystemSnapshot = null;
+        var mutationStarted = false;
 
         try
         {
+            fileSystemSnapshot = CaptureFileSystemState(restoreRecord.Target.FullPath, desktopIniPath);
+            var document = DesktopIniDocument.Load(desktopIniPath);
+            mutationStarted = true;
             PrepareDesktopIniForWrite(desktopIniPath);
 
             foreach (var pair in snapshot.PreviousShellClassInfoValues)
@@ -174,18 +181,78 @@ public sealed class FolderIconService
         }
         catch (UnauthorizedAccessException ex)
         {
+            var rollbackError = mutationStarted && fileSystemSnapshot is not null
+                ? TryRestoreFileSystemState(restoreRecord.Target.FullPath, desktopIniPath, fileSystemSnapshot)
+                : null;
             return OperationResult<FolderIconRestoreResult>.Failure(new IconReplacerError(
-                ErrorCode.PermissionDenied,
-                "The folder icon could not be restored.",
-                ex.Message));
+                rollbackError is null ? ErrorCode.PermissionDenied : ErrorCode.PartialFailure,
+                rollbackError is null
+                    ? "The folder icon could not be restored. The applied state was left unchanged."
+                    : "The folder icon restore failed and the applied target state could not be recovered completely.",
+                FailureDetail(ex, rollbackError)));
         }
         catch (IOException ex)
         {
+            var rollbackError = mutationStarted && fileSystemSnapshot is not null
+                ? TryRestoreFileSystemState(restoreRecord.Target.FullPath, desktopIniPath, fileSystemSnapshot)
+                : null;
             return OperationResult<FolderIconRestoreResult>.Failure(new IconReplacerError(
                 ErrorCode.PartialFailure,
-                "The folder icon restore failed before completion.",
-                ex.Message));
+                rollbackError is null
+                    ? "The folder icon restore failed before completion. The applied state was left unchanged."
+                    : "The folder icon restore failed and the applied target state could not be recovered completely.",
+                FailureDetail(ex, rollbackError)));
         }
+    }
+
+    private static FolderFileSystemSnapshot CaptureFileSystemState(
+        string folderPath,
+        string desktopIniPath)
+    {
+        var desktopIniExisted = File.Exists(desktopIniPath);
+        return new FolderFileSystemSnapshot(
+            desktopIniExisted,
+            desktopIniExisted ? File.ReadAllBytes(desktopIniPath) : null,
+            desktopIniExisted ? File.GetAttributes(desktopIniPath) : null,
+            File.GetAttributes(folderPath));
+    }
+
+    private static string? TryRestoreFileSystemState(
+        string folderPath,
+        string desktopIniPath,
+        FolderFileSystemSnapshot snapshot)
+    {
+        try
+        {
+            if (snapshot.DesktopIniExisted)
+            {
+                PrepareDesktopIniForWrite(desktopIniPath);
+                File.WriteAllBytes(desktopIniPath, snapshot.DesktopIniContents ?? []);
+                if (snapshot.DesktopIniAttributes is { } desktopIniAttributes)
+                {
+                    File.SetAttributes(desktopIniPath, desktopIniAttributes);
+                }
+            }
+            else if (File.Exists(desktopIniPath))
+            {
+                PrepareDesktopIniForWrite(desktopIniPath);
+                File.Delete(desktopIniPath);
+            }
+
+            File.SetAttributes(folderPath, snapshot.FolderAttributes);
+            return null;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        {
+            return ex.Message;
+        }
+    }
+
+    private static string FailureDetail(Exception exception, string? rollbackError)
+    {
+        return rollbackError is null
+            ? exception.Message
+            : $"{exception.Message} Rollback failed: {rollbackError}";
     }
 
     private static void PrepareDesktopIniForWrite(string desktopIniPath)
@@ -202,4 +269,10 @@ public sealed class FolderIconService
             File.SetAttributes(desktopIniPath, attributes & ~writeBlockingAttributes);
         }
     }
+
+    private sealed record FolderFileSystemSnapshot(
+        bool DesktopIniExisted,
+        byte[]? DesktopIniContents,
+        FileAttributes? DesktopIniAttributes,
+        FileAttributes FolderAttributes);
 }

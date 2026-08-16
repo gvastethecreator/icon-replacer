@@ -1,146 +1,321 @@
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IconReplacer.AppModel;
 using IconReplacer.Core;
 using Microsoft.UI.Xaml.Controls;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using Windows.ApplicationModel;
 
 namespace IconReplacer.App.ViewModels;
 
 public partial class MainPageViewModel : ObservableObject
 {
-    private readonly AppRouteViewService _routeViewService = new();
-    private readonly AppCommandRequestService _commandRequestService = new();
-    private readonly AppLocationService _locationService = new();
-    private readonly IconImportPickerRequestService _importPickerRequestService = new();
+    public const string LibrarySection = "library";
+    public const string RecentSection = "recent";
+    public const string SettingsSection = "settings";
+    public const string AboutSection = "about";
+    public const string AllIconsCategoryId = "__all__";
+
+    private readonly IconCatalogService _catalogService = new();
+    private readonly RestoreHistoryService _historyService = new();
     private readonly IconLibraryService _iconLibraryService = new();
+    private readonly IconImportPickerRequestService _importPickerRequestService = new();
     private readonly IconRestoreService _iconRestoreService = new();
+    private readonly AppLocationService _locationService = new();
     private readonly AppOperationFeedbackService _feedbackService = new();
-    private readonly AppActivationService _activationService = new();
-    private readonly ActivatedIconChangeService _activatedIconChangeService = new();
-    private readonly ActivatedMenuApplyService _activatedMenuApplyService = new();
-    private IReadOnlyList<string> _activationArguments = [];
+    private readonly GitHubReleaseUpdateService _updateService = new();
+    private readonly ThemePreferenceStore _themeStore = new();
+    private readonly Version _currentVersion = ResolveCurrentVersion();
+
+    private IconLibraryPaths? _paths;
+    private IReadOnlyList<IconTileViewModel> _allIcons = [];
+    private bool _isRefreshing;
+
+    public event EventHandler? CatalogChanged;
+
+    public GalleryLayoutMetrics GalleryLayout { get; } = new();
 
     [ObservableProperty]
-    public partial string PageTitle { get; set; } = "Icon Replacer";
+    public partial string SelectedSection { get; set; } = LibrarySection;
 
     [ObservableProperty]
-    public partial string PageSubtitle { get; set; } = "Loading library state...";
+    public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string StatusTitle { get; set; } = "Loading";
+    public partial IconCategoryViewModel? SelectedCategory { get; set; }
 
     [ObservableProperty]
-    public partial string StatusMessage { get; set; } = "Reading the Icon Library.";
+    public partial double IconPreviewSize { get; set; } = 64;
+
+    [ObservableProperty]
+    public partial bool IsBusy { get; set; } = true;
+
+    [ObservableProperty]
+    public partial string LibrarySummary { get; set; } = "Loading the Icon Library...";
+
+    [ObservableProperty]
+    public partial string VisibleSummary { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EmptyStateMessage { get; set; } = "No icons match this view.";
+
+    [ObservableProperty]
+    public partial string LibraryPath { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string LastUpdatedText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial IReadOnlyList<IconCategoryViewModel> Categories { get; set; } = [];
+
+    [ObservableProperty]
+    public partial int CollectionCount { get; set; }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<IconTileViewModel> VisibleIcons { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<RecentChangeItemViewModel> RecentChanges { get; set; } = [];
+
+    [ObservableProperty]
+    public partial IReadOnlyList<RecentChangeItemViewModel> RecentPreview { get; set; } = [];
+
+    [ObservableProperty]
+    public partial AppThemePreference ThemePreference { get; set; }
+
+    [ObservableProperty]
+    public partial string StatusTitle { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string StatusMessage { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial InfoBarSeverity StatusSeverity { get; set; } = InfoBarSeverity.Informational;
 
     [ObservableProperty]
-    public partial bool IsStatusOpen { get; set; } = true;
+    public partial bool IsStatusOpen { get; set; }
 
     [ObservableProperty]
-    public partial string PrimaryListTitle { get; set; } = "Recent changes";
+    public partial bool IsCheckingForUpdates { get; set; }
 
     [ObservableProperty]
-    public partial string SecondaryListTitle { get; set; } = "Readiness";
+    public partial string UpdateStatusTitle { get; set; } = "Not checked yet";
 
-    public ObservableCollection<MetricTileViewModel> Metrics { get; } = [];
+    [ObservableProperty]
+    public partial string UpdateStatusMessage { get; set; } =
+        "Open About to check GitHub Releases for a newer version.";
 
-    public ObservableCollection<ContentRowViewModel> PrimaryRows { get; } = [];
+    [ObservableProperty]
+    public partial string UpdateActionText { get; set; } = "View release";
 
-    public ObservableCollection<ContentRowViewModel> SecondaryRows { get; } = [];
+    [ObservableProperty]
+    public partial Uri? LatestReleaseUri { get; set; }
 
-    public string SelectedRouteId { get; private set; } = AppNavigationRouteIds.Home;
+    [ObservableProperty]
+    public partial bool IsUpdateLinkVisible { get; set; }
 
     public MainPageViewModel()
     {
-        LoadRoute(AppNavigationRouteIds.Home);
+        ThemePreference = _themeStore.Load();
     }
 
-    public async Task InitializeAsync(IReadOnlyList<string> activationArguments)
-    {
-        _activationArguments = activationArguments.ToArray();
-        if (_activationArguments.Count == 0)
-        {
-            return;
-        }
+    public bool IsLibraryVisible => SelectedSection == LibrarySection;
 
+    public bool IsRecentVisible => SelectedSection == RecentSection;
+
+    public bool IsSettingsVisible => SelectedSection == SettingsSection;
+
+    public bool IsAboutVisible => SelectedSection == AboutSection;
+
+    public string AppVersionText =>
+        $"Version {GitHubReleaseUpdateService.FormatVersion(_currentVersion)}";
+
+    public Uri ProjectUri => GitHubReleaseUpdateService.ProjectUri;
+
+    public Uri ReleasesUri => GitHubReleaseUpdateService.ReleasesUri;
+
+    public bool HasCheckedForUpdates { get; private set; }
+
+    public bool HasVisibleIcons => VisibleIcons.Count > 0;
+
+    public bool HasRecentChanges => RecentChanges.Count > 0;
+
+    public long LastRefreshMilliseconds { get; private set; }
+
+    public async Task InitializeAsync()
+    {
         var paths = IconLibraryPaths.FromEnvironment();
         if (!paths.Succeeded || paths.Value is null)
         {
             ShowError(paths.Error);
+            IsBusy = false;
             return;
         }
 
-        var activation = _activationService.Activate(_activationArguments, paths.Value);
-        if (!activation.Succeeded || activation.Value is null)
+        _paths = paths.Value;
+        LibraryPath = _paths.LibraryRoot;
+
+        var ensure = await Task.Run(() => _iconLibraryService.EnsureLibrary(_paths));
+        if (!ensure.Succeeded)
         {
-            ShowError(activation.Error);
+            ShowError(ensure.Error);
+            IsBusy = false;
             return;
         }
 
-        switch (activation.Value.Kind)
+        await RefreshCoreAsync(clearStatus: true);
+    }
+
+    public void SelectSection(string section)
+    {
+        if (section is LibrarySection or RecentSection or SettingsSection or AboutSection)
         {
-            case AppActivationKind.ChangeIcon:
-                await HandleChangeIconActivationAsync(paths.Value);
-                break;
-            case AppActivationKind.MenuApply:
-                HandleMenuApplyActivation(paths.Value);
-                break;
-            default:
-                LoadRoute(AppNavigationRouteIds.Home);
-                break;
+            SelectedSection = section;
         }
     }
 
-    public void SelectRoute(string routeId)
+    public void SetThemePreference(AppThemePreference preference)
     {
-        if (string.IsNullOrWhiteSpace(routeId))
-        {
-            return;
-        }
-
-        SelectedRouteId = routeId;
-        LoadRoute(routeId);
+        ThemePreference = preference;
+        _themeStore.Save(preference);
     }
 
-    public void ShowUnexpectedException(Exception ex)
+    public void SetIconCellLayout(double width, double previewSize, double height)
     {
-        ShowFeedback(_feedbackService.FromError(new IconReplacerError(
+        GalleryLayout.Set(width, previewSize, height);
+    }
+
+    public void ShowUnexpectedException(Exception exception)
+    {
+        ShowError(new IconReplacerError(
             ErrorCode.Unknown,
-            "The activation workflow could not be completed.",
-            ex.Message)));
+            "Icon Replacer encountered an unexpected error.",
+            exception.Message));
     }
 
-    [RelayCommand]
-    private void Refresh()
+    [RelayCommand(CanExecute = nameof(CanRunLibraryOperation))]
+    private async Task RefreshAsync()
     {
-        LoadRoute(SelectedRouteId);
+        await RefreshCoreAsync(clearStatus: true);
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
+    private async Task CheckForUpdatesAsync()
+    {
+        IsCheckingForUpdates = true;
+        IsUpdateLinkVisible = false;
+        LatestReleaseUri = null;
+        UpdateStatusTitle = "Checking for updates";
+        UpdateStatusMessage = "Contacting GitHub Releases...";
+
+        try
+        {
+            var update = await _updateService.CheckAsync(_currentVersion);
+            HasCheckedForUpdates = true;
+            UpdateStatusTitle = update.Status switch
+            {
+                AppUpdateStatus.UpdateAvailable => "Update available",
+                AppUpdateStatus.UpToDate => "You're up to date",
+                AppUpdateStatus.NoPublishedRelease => "No published release",
+                _ => "Couldn't check for updates"
+            };
+            UpdateStatusMessage = update.Message;
+            LatestReleaseUri = update.Status == AppUpdateStatus.UpdateAvailable
+                ? update.LatestReleaseUri
+                : null;
+            UpdateActionText = update.LatestVersion is null
+                ? "View releases"
+                : $"View version {GitHubReleaseUpdateService.FormatVersion(update.LatestVersion)}";
+            IsUpdateLinkVisible = LatestReleaseUri is not null;
+        }
+        finally
+        {
+            IsCheckingForUpdates = false;
+        }
+    }
+
+    private async Task<bool> RefreshCoreAsync(bool clearStatus)
+    {
+        if (_paths is null || _isRefreshing)
+        {
+            return false;
+        }
+
+        _isRefreshing = true;
+        IsBusy = true;
+        if (clearStatus)
+        {
+            IsStatusOpen = false;
+        }
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var catalogTask = Task.Run(() => _catalogService.Scan(_paths));
+            var historyTask = Task.Run(() => _historyService.GetHistory(_paths));
+            await Task.WhenAll(catalogTask, historyTask);
+
+            var catalog = await catalogTask;
+            var history = await historyTask;
+            if (!catalog.Succeeded || catalog.Value is null)
+            {
+                ShowError(catalog.Error);
+                return false;
+            }
+
+            if (!history.Succeeded || history.Value is null)
+            {
+                ShowError(history.Error);
+                return false;
+            }
+
+            ApplyCatalog(catalog.Value);
+            ApplyHistory(history.Value);
+
+            stopwatch.Stop();
+            LastRefreshMilliseconds = stopwatch.ElapsedMilliseconds;
+            LastUpdatedText = $"Updated {DateTimeOffset.Now:t}";
+
+            if (catalog.Value.Warnings.Count > 0)
+            {
+                OpenStatus(
+                    "Some icons were skipped",
+                    $"{catalog.Value.Warnings.Count:N0} files could not be previewed.",
+                    InfoBarSeverity.Warning);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ShowError(new IconReplacerError(
+                ErrorCode.Unknown,
+                "The Icon Library could not be refreshed.",
+                ex.Message));
+            return false;
+        }
+        finally
+        {
+            _isRefreshing = false;
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunLibraryOperation))]
     private async Task ImportIconsAsync()
     {
-        var paths = IconLibraryPaths.FromEnvironment();
-        if (!paths.Succeeded || paths.Value is null)
+        if (_paths is null)
         {
-            ShowError(paths.Error);
             return;
         }
 
-        var request = _importPickerRequestService.CreateRequest(paths.Value);
-        if (!request.Succeeded || request.Value is null)
+        var request = _importPickerRequestService.CreateRequest(_paths);
+        if (!request.Succeeded || request.Value is null || !request.Value.CanOpenPicker)
         {
-            ShowError(request.Error);
-            return;
-        }
-
-        if (!request.Value.CanOpenPicker)
-        {
-            ShowError(request.Value.Error);
+            ShowError(request.Succeeded && request.Value is not null
+                ? request.Value.Error
+                : request.Error);
             return;
         }
 
@@ -154,124 +329,62 @@ public partial class MainPageViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ShowFeedback(_feedbackService.FromError(new IconReplacerError(
+            ShowError(new IconReplacerError(
                 ErrorCode.Unknown,
                 "The icon picker could not be opened.",
-                ex.Message)));
+                ex.Message));
             return;
         }
 
         if (sourcePaths.Count == 0)
         {
-            SelectRoute(AppNavigationRouteIds.ImportIcons);
-            ShowFeedback(new AppOperationFeedback(
-                AppOperationFeedbackSeverity.Info,
-                "Import cancelled.",
-                "No icons were selected."));
             return;
         }
 
-        var import = _iconLibraryService.ImportIcons(sourcePaths, paths.Value);
-        if (!import.Succeeded || import.Value is null)
-        {
-            ShowFeedback(_feedbackService.FromError(import.Error));
-            return;
-        }
-
-        LoadRoute(AppNavigationRouteIds.IconBrowser);
-        ShowFeedback(_feedbackService.FromBatchImport(import.Value));
-    }
-
-    private async Task HandleChangeIconActivationAsync(IconLibraryPaths paths)
-    {
-        SelectedRouteId = AppNavigationRouteIds.ChangeIcon;
-        LoadRoute(AppNavigationRouteIds.ChangeIcon);
-
-        var activation = _activationService.Activate(_activationArguments, paths);
-        var pickerRequest = activation.Value?.LaunchRequest?.PickerRequest;
-        if (!activation.Succeeded || activation.Value is null || pickerRequest is null)
-        {
-            ShowFeedback(_feedbackService.FromError(activation.Error));
-            return;
-        }
-
-        if (!pickerRequest.CanOpenPicker)
-        {
-            ShowFeedback(_feedbackService.FromError(pickerRequest.Error));
-            return;
-        }
-
-        string? selectedIconPath;
+        IsBusy = true;
         try
         {
-            await PreparePickerOwnerAsync();
-            selectedIconPath = await PickSingleIconPathAsync(
-                pickerRequest.FileExtensions,
-                pickerRequest.InitialDirectory,
-                "Change icon");
+            var import = await Task.Run(() => _iconLibraryService.ImportIcons(sourcePaths, _paths));
+            if (!import.Succeeded || import.Value is null)
+            {
+                ShowError(import.Error);
+                return;
+            }
+
+            var feedback = _feedbackService.FromBatchImport(import.Value);
+            IsBusy = false;
+            if (await RefreshCoreAsync(clearStatus: true))
+            {
+                ShowFeedback(feedback);
+            }
         }
         catch (Exception ex)
         {
-            ShowFeedback(_feedbackService.FromError(new IconReplacerError(
+            ShowError(new IconReplacerError(
                 ErrorCode.Unknown,
-                "The icon picker could not be opened.",
-                ex.Message)));
-            return;
+                "The icons could not be imported.",
+                ex.Message));
         }
-
-        if (string.IsNullOrWhiteSpace(selectedIconPath))
+        finally
         {
-            ShowFeedback(new AppOperationFeedback(
-                AppOperationFeedbackSeverity.Info,
-                "Change icon cancelled.",
-                "No icon was selected."));
-            return;
+            IsBusy = false;
         }
-
-        var apply = _activatedIconChangeService.ApplySelectedIcon(_activationArguments, selectedIconPath, paths);
-        if (!apply.Succeeded || apply.Value is null)
-        {
-            ShowFeedback(_feedbackService.FromError(apply.Error));
-            return;
-        }
-
-        LoadRoute(AppNavigationRouteIds.History);
-        ShowFeedback(_feedbackService.FromApply(apply.Value.ChangeResult.ApplyResult));
     }
 
-    private void HandleMenuApplyActivation(IconLibraryPaths paths)
-    {
-        var apply = _activatedMenuApplyService.ApplyActivation(_activationArguments, paths);
-        if (!apply.Succeeded || apply.Value is null)
-        {
-            ShowFeedback(_feedbackService.FromError(apply.Error));
-            return;
-        }
-
-        LoadRoute(AppNavigationRouteIds.History);
-        ShowFeedback(_feedbackService.FromApply(apply.Value.MenuApplyResult.ChangeResult.ApplyResult));
-    }
-
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanRunLibraryOperation))]
     private void OpenIconLibrary()
     {
-        var paths = IconLibraryPaths.FromEnvironment();
-        if (!paths.Succeeded || paths.Value is null)
+        if (_paths is null || IsBusy)
         {
-            ShowError(paths.Error);
             return;
         }
 
-        var request = _locationService.CreateOpenRequest(AppLocationKind.IconLibrary, paths.Value);
-        if (!request.Succeeded || request.Value is null)
+        var request = _locationService.CreateOpenRequest(AppLocationKind.IconLibrary, _paths);
+        if (!request.Succeeded || request.Value is null || !request.Value.CanOpen)
         {
-            ShowError(request.Error);
-            return;
-        }
-
-        if (!request.Value.CanOpen)
-        {
-            ShowError(request.Value.Error);
+            ShowError(request.Succeeded && request.Value is not null
+                ? request.Value.Error
+                : request.Error);
             return;
         }
 
@@ -286,368 +399,242 @@ public partial class MainPageViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ShowFeedback(_feedbackService.FromError(new IconReplacerError(
+            ShowError(new IconReplacerError(
                 ErrorCode.Unknown,
                 "The Icon Library could not be opened.",
-                ex.Message)));
+                ex.Message));
+        }
+    }
+
+    private async Task RestoreRecordAsync(Guid recordId)
+    {
+        if (_paths is null || IsBusy)
+        {
             return;
         }
 
-        StatusTitle = "Icon Library opened";
-        StatusMessage = request.Value.TargetPath;
-        StatusSeverity = InfoBarSeverity.Success;
-        IsStatusOpen = true;
+        IsBusy = true;
+        try
+        {
+            var restore = await Task.Run(() => _iconRestoreService.Restore(recordId, _paths));
+            if (!restore.Succeeded || restore.Value is null)
+            {
+                ShowError(restore.Error);
+                return;
+            }
+
+            ShowFeedback(_feedbackService.FromRestore(restore.Value));
+            await RefreshHistoryAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowError(new IconReplacerError(
+                ErrorCode.Unknown,
+                "The original icon could not be restored.",
+                ex.Message));
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
-    private Task RestoreRecordAsync(Guid recordId)
+    private async Task RefreshHistoryAsync()
     {
-        var paths = IconLibraryPaths.FromEnvironment();
-        if (!paths.Succeeded || paths.Value is null)
+        if (_paths is null)
         {
-            ShowError(paths.Error);
-            return Task.CompletedTask;
-        }
-
-        var restore = _iconRestoreService.Restore(recordId, paths.Value);
-        if (!restore.Succeeded || restore.Value is null)
-        {
-            ShowFeedback(_feedbackService.FromError(restore.Error));
-            return Task.CompletedTask;
-        }
-
-        LoadRoute(AppNavigationRouteIds.History);
-        ShowFeedback(_feedbackService.FromRestore(restore.Value));
-        return Task.CompletedTask;
-    }
-
-    private void LoadRoute(string routeId)
-    {
-        var tooling = ToolingProbe.GetPackagingInputs();
-        var browserOptions = routeId == AppNavigationRouteIds.IconBrowser
-            ? new IconBrowserOptions(MaxItems: 80)
-            : null;
-
-        var view = _routeViewService.GetViewFromEnvironment(
-            _activationArguments,
-            routeId,
-            tooling.WinUiTooling,
-            browserOptions: browserOptions,
-            packagingInputs: tooling);
-        if (!view.Succeeded || view.Value is null)
-        {
-            ShowError(view.Error);
             return;
         }
 
-        ApplyView(view.Value);
-    }
-
-    private void ApplyView(AppRouteViewSnapshot view)
-    {
-        PageTitle = view.Route.Title;
-        PageSubtitle = view.Summary;
-        StatusTitle = view.IsContentReady ? "Ready" : "Needs input";
-        StatusMessage = view.IsContentReady ? view.Route.Purpose : view.Error.Message;
-        StatusSeverity = view.IsContentReady ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
-        IsStatusOpen = true;
-
-        Metrics.Clear();
-        PrimaryRows.Clear();
-        SecondaryRows.Clear();
-
-        switch (view.ContentKind)
+        var history = await Task.Run(() => _historyService.GetHistory(_paths));
+        if (!history.Succeeded || history.Value is null)
         {
-            case AppRouteContentKind.Home:
-                FillHome(view);
-                break;
-            case AppRouteContentKind.IconBrowser:
-                FillBrowser(view);
-                break;
-            case AppRouteContentKind.History:
-                FillHistory(view);
-                break;
-            case AppRouteContentKind.Diagnostics:
-                FillDiagnostics(view);
-                break;
-            case AppRouteContentKind.PackagePlan:
-                FillPackagePlan(view);
-                break;
-            case AppRouteContentKind.ImportIcons:
-                FillImport(view);
-                break;
-            case AppRouteContentKind.ChangeIconWorkflow:
-                FillChangeIconWorkflow(view);
-                break;
-            default:
-                FillFallback(view);
-                break;
+            ShowError(history.Error);
+            return;
         }
+
+        ApplyHistory(history.Value);
     }
 
-    private void FillHome(AppRouteViewSnapshot view)
+    private void ApplyCatalog(IconCatalog catalog)
     {
-        var home = view.Home!;
-        PrimaryListTitle = "Recent changes";
-        SecondaryListTitle = "Setup";
+        var selectedCategoryId = SelectedCategory?.Id ?? AllIconsCategoryId;
+        _allIcons = catalog.Entries
+            .Select(entry => new IconTileViewModel(
+                HumanizeIconName(entry.DisplayName),
+                entry.FullPath,
+                entry.Category?.Name ?? "Uncategorized",
+                entry.LengthBytes,
+                GalleryLayout))
+            .OrderBy(icon => icon.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(icon => icon.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
-        AddMetric("Icons", home.Dashboard.IconCount, $"{home.Dashboard.CategoryCount} categories");
-        AddMetric("History", home.History.TotalCount, $"{home.History.RestorableCount} restorable");
-        AddMetric("Menu", home.Menu.VisibleIconCount, $"{home.Menu.Categories.Count} groups");
-        AddMetric("Warnings", home.Dashboard.CatalogWarningCount, "catalog");
-
-        foreach (var record in home.History.Records.Take(12))
+        var categories = new List<IconCategoryViewModel>
         {
-            PrimaryRows.Add(CreateRestoreRow(
+            new(
+                AllIconsCategoryId,
+                "All icons",
+                _allIcons.Count,
+                _allIcons.Take(4).ToArray(),
+                IsAllIcons: true)
+        };
+
+        categories.AddRange(_allIcons
+            .GroupBy(icon => icon.CategoryName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new IconCategoryViewModel(
+                group.Key,
+                group.Key,
+                group.Count(),
+                group.Take(4).ToArray())));
+
+        Categories = categories;
+        CollectionCount = Math.Max(0, categories.Count - 1);
+        SelectedCategory = categories.FirstOrDefault(category =>
+            string.Equals(category.Id, selectedCategoryId, StringComparison.OrdinalIgnoreCase))
+            ?? categories[0];
+        LibrarySummary = $"{_allIcons.Count:N0} icons in {CollectionCount:N0} collections";
+        ApplyFilter();
+        CatalogChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private static string HumanizeIconName(string displayName)
+    {
+        var words = displayName
+            .Replace('_', ' ')
+            .Replace('-', ' ')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return string.Join(' ', words.Select(word =>
+            word.Length == 1
+                ? word.ToUpperInvariant()
+                : char.ToUpperInvariant(word[0]) + word[1..]));
+    }
+
+    private void ApplyHistory(RestoreHistorySnapshot history)
+    {
+        RecentChanges = history.Records
+            .Select(record => new RecentChangeItemViewModel(
                 record,
-                $"{record.TargetKind} - {record.CreatedAt.LocalDateTime:g}"));
-        }
-
-        foreach (var action in home.Setup.Actions)
-        {
-            SecondaryRows.Add(new ContentRowViewModel(
-                action.Title,
-                action.Detail,
-                action.Severity.ToString()));
-        }
+                RestoreRecordAsync,
+                () => !IsBusy))
+            .ToArray();
+        RecentPreview = RecentChanges.Take(5).ToArray();
+        OnPropertyChanged(nameof(HasRecentChanges));
     }
 
-    private void FillBrowser(AppRouteViewSnapshot view)
+    private void ApplyFilter()
     {
-        var browser = view.Browser!;
-        PrimaryListTitle = "Icons";
-        SecondaryListTitle = "Categories";
-
-        AddMetric("Visible", browser.VisibleIconCount, $"{browser.MatchedIconCount} matched");
-        AddMetric("Total", browser.TotalIconCount, "icons");
-        AddMetric("Categories", browser.Categories.Count, "folders");
-        AddMetric("Warnings", browser.Warnings.Count, "catalog");
-
-        foreach (var item in browser.Items)
+        IEnumerable<IconTileViewModel> filtered = _allIcons;
+        if (SelectedCategory is { IsAllIcons: false } category)
         {
-            PrimaryRows.Add(new ContentRowViewModel(
-                item.DisplayName,
-                item.FullPath,
-                item.CategoryName));
+            filtered = filtered.Where(icon =>
+                string.Equals(icon.CategoryName, category.Id, StringComparison.OrdinalIgnoreCase));
         }
 
-        foreach (var category in browser.Categories.Take(18))
+        var search = SearchText.Trim();
+        if (search.Length > 0)
         {
-            SecondaryRows.Add(new ContentRowViewModel(
-                category.Name,
-                $"{category.IconCount} icons",
-                "Library"));
-        }
-    }
-
-    private void FillHistory(AppRouteViewSnapshot view)
-    {
-        var history = view.History!;
-        PrimaryListTitle = "Restore history";
-        SecondaryListTitle = "State";
-
-        AddMetric("Records", history.TotalCount, history.Filter.ToString());
-        AddMetric("Shown", history.Records.Count, "current filter");
-        AddMetric("Restorable", history.RestorableCount, "safe");
-        AddMetric("Stale", history.StaleCount, "needs review");
-
-        foreach (var record in history.Records)
-        {
-            PrimaryRows.Add(CreateRestoreRow(record, record.AppliedIconPath));
+            filtered = filtered.Where(icon =>
+                icon.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                icon.CategoryName.Contains(search, StringComparison.OrdinalIgnoreCase));
         }
 
-        SecondaryRows.Add(new ContentRowViewModel("Restore state", history.RestoreStateFile, "JSON"));
-        SecondaryRows.Add(new ContentRowViewModel("Filter", history.Filter.ToString(), "Active"));
-    }
-
-    private void FillDiagnostics(AppRouteViewSnapshot view)
-    {
-        var diagnostics = view.Diagnostics!;
-        PrimaryListTitle = "Checks";
-        SecondaryListTitle = "Locations";
-
-        AddMetric("Blockers", diagnostics.BlockingCount, "diagnostics");
-        AddMetric("Warnings", diagnostics.WarningCount, "diagnostics");
-        AddMetric("Icons", diagnostics.Dashboard.IconCount, "library");
-        AddMetric("Records", diagnostics.Dashboard.RestoreRecordCount, "history");
-
-        foreach (var check in diagnostics.Checks)
-        {
-            PrimaryRows.Add(new ContentRowViewModel(
-                check.Title,
-                check.Detail,
-                check.Status.ToString()));
-        }
-
-        foreach (var location in diagnostics.Locations)
-        {
-            SecondaryRows.Add(new ContentRowViewModel(
-                location.Label,
-                location.FullPath,
-                location.Exists ? "Found" : "Missing"));
-        }
-    }
-
-    private void FillPackagePlan(AppRouteViewSnapshot view)
-    {
-        var plan = view.PackagePlan!;
-        PrimaryListTitle = "Package gates";
-        SecondaryListTitle = "Manifest";
-
-        AddMetric("Blockers", plan.BlockingCount, "package");
-        AddMetric("Warnings", plan.WarningCount, "proof");
-        AddMetric("Install", plan.InstallMode, "mode");
-        AddMetric("Signing", plan.RequiresDevSigning ? "Required" : "Ready", "local");
-
-        foreach (var item in plan.Items)
-        {
-            PrimaryRows.Add(new ContentRowViewModel(
-                item.Title,
-                item.Detail,
-                item.Status.ToString()));
-        }
-
-        SecondaryRows.Add(new ContentRowViewModel("Package", plan.PackageName, "Identity"));
-        SecondaryRows.Add(new ContentRowViewModel("Application", plan.ManifestContract.ApplicationId, "App ID"));
-        SecondaryRows.Add(new ContentRowViewModel("CLSID", plan.ManifestContract.ExplorerCommandClsid, "COM"));
-        SecondaryRows.Add(new ContentRowViewModel("DLL", plan.ManifestContract.ShellExtensionDllPath, "Native"));
-    }
-
-    private void FillImport(AppRouteViewSnapshot view)
-    {
-        var request = view.ImportPickerRequest!;
-        PrimaryListTitle = "Import target";
-        SecondaryListTitle = "Picker";
-
-        AddMetric("Destination", request.DestinationCollectionName, "collection");
-        AddMetric("Files", request.AllowMultiple ? "Multiple" : "Single", "selection");
-        AddMetric("Type", string.Join(", ", request.FileExtensions), "filter");
-        AddMetric("Ready", request.CanOpenPicker ? "Yes" : "No", "picker");
-
-        PrimaryRows.Add(new ContentRowViewModel(
-            "Destination",
-            request.DestinationDirectory,
-            request.DestinationCollectionName,
-            "Choose icons",
-            ImportIconsCommand,
-            request.CanOpenPicker));
-        PrimaryRows.Add(new ContentRowViewModel("Initial folder", request.InitialDirectory, "Icon Library"));
-
-        foreach (var command in view.Commands.Commands)
-        {
-            SecondaryRows.Add(new ContentRowViewModel(
-                command.Label,
-                command.Detail,
-                command.IsEnabled ? "Enabled" : "Disabled"));
-        }
-    }
-
-    private void FillChangeIconWorkflow(AppRouteViewSnapshot view)
-    {
-        var workflow = view.ChangeIconWorkflow!;
-        PrimaryListTitle = "Change icon";
-        SecondaryListTitle = "Target";
-
-        AddMetric("Step", workflow.Step.ToString(), "workflow");
-        AddMetric("Picker", workflow.CanOpenPicker ? "Ready" : "Blocked", "icon");
-        AddMetric("Preview", workflow.CanPreview ? "Ready" : "Waiting", "selected icon");
-        AddMetric("Apply", workflow.CanApply ? "Ready" : "Waiting", "target");
-
-        PrimaryRows.Add(new ContentRowViewModel(
-            "Activation",
-            string.Join(" ", _activationArguments.Select(QuoteForDisplay)),
-            workflow.Activation.Kind.ToString()));
-
-        if (workflow.LaunchRequest is not null)
-        {
-            SecondaryRows.Add(new ContentRowViewModel(
-                "Target",
-                workflow.LaunchRequest.RequestedTargetPath,
-                workflow.LaunchRequest.Selection.Status.ToString()));
-            SecondaryRows.Add(new ContentRowViewModel(
-                "Picker",
-                workflow.LaunchRequest.PickerRequest.InitialDirectory,
-                workflow.CanOpenPicker ? "Ready" : "Blocked"));
-        }
-
-        if (workflow.Preview?.Preview.IconDetails is not null)
-        {
-            PrimaryRows.Add(new ContentRowViewModel(
-                workflow.Preview.Preview.IconDetails.DisplayName,
-                workflow.SelectedIconPath ?? string.Empty,
-                workflow.CanApply ? "Ready" : "Blocked"));
-        }
-
-        if (workflow.Error.Code != ErrorCode.None)
-        {
-            PrimaryRows.Add(new ContentRowViewModel(
-                workflow.Error.Message,
-                workflow.Error.Detail ?? workflow.Error.Code.ToString(),
-                "Blocked"));
-        }
-    }
-
-    private void FillFallback(AppRouteViewSnapshot view)
-    {
-        PrimaryListTitle = "Route";
-        SecondaryListTitle = "Commands";
-        AddMetric("Commands", view.Commands.CommandCount, $"{view.Commands.EnabledCount} enabled");
-        AddMetric("Ready", view.IsContentReady ? "Yes" : "No", view.ContentKind.ToString());
-
-        PrimaryRows.Add(new ContentRowViewModel(view.Route.Title, view.Route.Purpose, view.ContentKind.ToString()));
-        foreach (var command in view.Commands.Commands)
-        {
-            SecondaryRows.Add(new ContentRowViewModel(command.Label, command.Detail, command.IsEnabled ? "Enabled" : "Disabled"));
-        }
+        VisibleIcons = filtered.ToArray();
+        VisibleSummary = VisibleIcons.Count == _allIcons.Count
+            ? $"{VisibleIcons.Count:N0} icons"
+            : $"{VisibleIcons.Count:N0} of {_allIcons.Count:N0} icons";
+        EmptyStateMessage = search.Length > 0
+            ? $"No icons match \"{search}\"."
+            : "This collection does not contain any valid icons.";
+        OnPropertyChanged(nameof(HasVisibleIcons));
     }
 
     private void ShowError(IconReplacerError error)
     {
-        PageTitle = "Icon Replacer";
-        PageSubtitle = error.Detail ?? error.Message;
-        StatusTitle = error.Message;
-        StatusMessage = error.Detail ?? error.Code.ToString();
-        StatusSeverity = InfoBarSeverity.Error;
-        IsStatusOpen = true;
+        OpenStatus(
+            error.Message,
+            error.Detail ?? error.Code.ToString(),
+            InfoBarSeverity.Error);
     }
 
     private void ShowFeedback(AppOperationFeedback feedback)
     {
-        StatusTitle = feedback.Title;
-        StatusMessage = feedback.Detail;
-        StatusSeverity = feedback.Severity switch
+        var severity = feedback.Severity switch
         {
             AppOperationFeedbackSeverity.Success => InfoBarSeverity.Success,
             AppOperationFeedbackSeverity.Warning => InfoBarSeverity.Warning,
             AppOperationFeedbackSeverity.Error => InfoBarSeverity.Error,
             _ => InfoBarSeverity.Informational
         };
+
+        OpenStatus(feedback.Title, feedback.Detail, severity);
+    }
+
+    private void OpenStatus(string title, string message, InfoBarSeverity severity)
+    {
+        // Reopening an InfoBar causes assistive technology to announce updated content.
+        IsStatusOpen = false;
+        StatusTitle = title;
+        StatusMessage = message;
+        StatusSeverity = severity;
         IsStatusOpen = true;
     }
 
-    private ContentRowViewModel CreateRestoreRow(RestoreRecordSummary record, string detail)
+    partial void OnSelectedSectionChanged(string value)
     {
-        return new ContentRowViewModel(
-            Shorten(record.TargetPath),
-            detail,
-            record.CanRestore ? "Restorable" : record.Status.ToString(),
-            "Restore",
-            record.CanRestore ? new AsyncRelayCommand(() => RestoreRecordAsync(record.Id)) : null,
-            record.CanRestore);
+        OnPropertyChanged(nameof(IsLibraryVisible));
+        OnPropertyChanged(nameof(IsRecentVisible));
+        OnPropertyChanged(nameof(IsSettingsVisible));
+        OnPropertyChanged(nameof(IsAboutVisible));
+        if (value == AboutSection && !HasCheckedForUpdates)
+        {
+            CheckForUpdatesCommand.Execute(null);
+        }
     }
 
-    private void AddMetric(string label, int value, string detail)
+    partial void OnSelectedCategoryChanged(IconCategoryViewModel? value)
     {
-        AddMetric(label, value.ToString("N0"), detail);
+        ApplyFilter();
     }
 
-    private void AddMetric(string label, string value, string detail)
+    partial void OnSearchTextChanged(string value)
     {
-        Metrics.Add(new MetricTileViewModel(label, value, detail));
+        ApplyFilter();
     }
 
-    private static string Shorten(string value)
+    partial void OnIsBusyChanged(bool value)
     {
-        return value.Length <= 84 ? value : "..." + value[^81..];
+        RefreshCommand.NotifyCanExecuteChanged();
+        ImportIconsCommand.NotifyCanExecuteChanged();
+        OpenIconLibraryCommand.NotifyCanExecuteChanged();
+        foreach (var item in RecentChanges)
+        {
+            item.NotifyCanExecuteChanged();
+        }
+    }
+
+    partial void OnIsCheckingForUpdatesChanged(bool value)
+    {
+        CheckForUpdatesCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanRunLibraryOperation() => _paths is not null && !IsBusy;
+
+    private bool CanCheckForUpdates() => !IsCheckingForUpdates;
+
+    private static Version ResolveCurrentVersion()
+    {
+        try
+        {
+            var version = Package.Current.Id.Version;
+            return new Version(version.Major, version.Minor, version.Build, version.Revision);
+        }
+        catch (InvalidOperationException)
+        {
+            return typeof(MainPageViewModel).Assembly.GetName().Version ?? new Version(1, 0, 0, 0);
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -664,31 +651,4 @@ public partial class MainPageViewModel : ObservableObject
             allowMultiple: true));
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Task<string?> PickSingleIconPathAsync(
-        IReadOnlyList<string> fileExtensions,
-        string initialDirectory,
-        string commitButtonText)
-    {
-        var paths = NativeIconFileDialog.PickFiles(
-            App.WindowHandle,
-            fileExtensions,
-            initialDirectory,
-            commitButtonText,
-            allowMultiple: false);
-        return Task.FromResult(paths.FirstOrDefault());
-    }
-
-    private static string QuoteForDisplay(string argument)
-    {
-        return argument.Any(char.IsWhiteSpace)
-            ? $"\"{argument}\""
-            : argument;
-    }
-
-    private static async Task PreparePickerOwnerAsync()
-    {
-        App.Window.Activate();
-        await Task.Delay(500);
-    }
 }

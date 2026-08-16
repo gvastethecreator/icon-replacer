@@ -6,6 +6,7 @@ public sealed class IconApplyService
 {
     private readonly FolderIconService _folderIconService;
     private readonly ShortcutIconService _shortcutIconService;
+    private readonly TargetMutationCoordinator _mutationCoordinator = new();
 
     public IconApplyService(
         FolderIconService? folderIconService = null,
@@ -64,7 +65,7 @@ public sealed class IconApplyService
         {
             return OperationResult<IconApplyResult>.Failure(new IconReplacerError(
                 ErrorCode.UnsupportedTarget,
-                "Icon Replacer supports folders and .lnk shortcuts in V1.",
+                "Icon Replacer supports local folders, directory links, and .lnk shortcuts in V1.",
                 fullPath));
         }
 
@@ -72,6 +73,17 @@ public sealed class IconApplyService
     }
 
     public OperationResult<IconApplyResult> ApplyToShellSelection(
+        string targetPath,
+        bool isDirectory,
+        string iconPath,
+        IconLibraryPaths libraryPaths)
+    {
+        return _mutationCoordinator.Run(
+            targetPath,
+            () => ApplyToShellSelectionCore(targetPath, isDirectory, iconPath, libraryPaths));
+    }
+
+    private OperationResult<IconApplyResult> ApplyToShellSelectionCore(
         string targetPath,
         bool isDirectory,
         string iconPath,
@@ -89,14 +101,47 @@ public sealed class IconApplyService
         var save = new RestoreRecordStore(libraryPaths.RestoreStateFile).Upsert(applyResult.Value.RestoreRecord);
         if (!save.Succeeded)
         {
-            return OperationResult<IconApplyResult>.Failure(new IconReplacerError(
-                ErrorCode.PartialFailure,
-                "The icon was changed, but the restore record could not be saved.",
-                save.Error.Detail ?? save.Error.Message));
+            return PersistenceFailure(applyResult.Value, save.Error);
         }
 
         return applyResult;
     }
+
+    private OperationResult<IconApplyResult> PersistenceFailure(
+        IconApplyResult applyResult,
+        IconReplacerError saveError)
+    {
+        var rollback = RestoreTarget(applyResult);
+        if (rollback.Succeeded)
+        {
+            return OperationResult<IconApplyResult>.Failure(new IconReplacerError(
+                saveError.Code,
+                "The icon change could not be recorded, so the target was restored to its previous state.",
+                saveError.Detail ?? saveError.Message));
+        }
+
+        return OperationResult<IconApplyResult>.Failure(new IconReplacerError(
+            ErrorCode.PartialFailure,
+            "The icon was changed, but its restore record could not be saved and automatic rollback failed.",
+            $"Save failed: {saveError.Detail ?? saveError.Message} Rollback failed: {rollback.Error.Detail ?? rollback.Error.Message}"));
+    }
+
+    private OperationResult RestoreTarget(IconApplyResult applyResult)
+    {
+        return applyResult.TargetKind switch
+        {
+            TargetKind.Folder => ToOperationResult(_folderIconService.Restore(applyResult.RestoreRecord)),
+            TargetKind.Shortcut => ToOperationResult(_shortcutIconService.Restore(applyResult.RestoreRecord)),
+            _ => OperationResult.Failure(new IconReplacerError(
+                ErrorCode.UnsupportedTarget,
+                "The changed target type cannot be rolled back."))
+        };
+    }
+
+    private static OperationResult ToOperationResult<T>(OperationResult<T> result) =>
+        result.Succeeded
+            ? OperationResult.Success()
+            : OperationResult.Failure(result.Error);
 
     private OperationResult<IconApplyResult> ApplyFolder(
         string targetPath,
