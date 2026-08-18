@@ -65,9 +65,26 @@ dotnet test tests\IconReplacer.Core.Tests\IconReplacer.Core.Tests.csproj --confi
 
 Architecture, packaging, testing, security, and release proof live in the [documentation index](docs/INDEX.md). Contributor expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Microsoft Store preparation
+
+The Store release is a separate x64 package channel with an exact Partner Center identity, Store-managed update policy, package validation, Explorer/COM lifecycle matrix, bilingual listing and privacy material, certification notes, and release evidence.
+
+See:
+
+- [Microsoft Store submission runbook](docs/store/README.md)
+- [Store listing source](docs/store/LISTING.md)
+- [Certification notes](docs/store/CERTIFICATION-NOTES.md)
+- [Release evidence template](docs/store/RELEASE-EVIDENCE-TEMPLATE.md)
+- [Privacy policy](PRIVACY.md)
+- [Source-license decision](docs/store/LICENSE-DECISION.md)
+
+The final Store build is deliberately blocked until Icon Replacer is reserved in Partner Center and the exact identity is applied. The first Store architecture remains x64 because the native Explorer extension and its lifecycle evidence must be produced separately for every architecture.
+
+The Store build does not contact GitHub Releases for updates. The existing development-certificate release candidate remains a distinct evaluator channel and is not the stable Store package.
+
 ## Release status
 
-The core icon engine, restore path, WinUI app, command host, and Explorer extension are implemented and covered by automated tests. Stable-release readiness remains open until clean uninstall, the remaining Explorer scenarios, and the outstanding accessibility checks have manual evidence.
+The core icon engine, restore path, WinUI app, command host, and Explorer extension are implemented and covered by automated tests. Stable-release readiness remains open until clean install, update, uninstall, Explorer modern/classic scenarios, accessibility, Store listing/privacy, and source-license decisions have complete evidence.
 
 ## Support the project
 
@@ -79,4 +96,4 @@ The core icon engine, restore path, WinUI app, command host, and Explorer extens
 
 ## License
 
-No source-code license has been selected yet. The repository is public for inspection, but it does not currently grant permission to reuse, modify, or redistribute the source code.
+No source-code license has been selected yet. The repository is public for inspection, but it does not currently grant permission to reuse, modify, or redistribute the source code. The options and required follow-up are documented in [the Store license-decision record](docs/store/LICENSE-DECISION.md).
