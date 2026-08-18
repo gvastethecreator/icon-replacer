@@ -7,5 +7,6 @@
     <RepositoryUrl>https://github.com/gvastethecreator/icon-replacer</RepositoryUrl>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DefineConstants Condition="'$(ICON_REPLACER_DISTRIBUTION_CHANNEL)' == 'store'">$(DefineConstants);ICON_REPLACER_STORE</DefineConstants>
   </PropertyGroup>
 </Project>
