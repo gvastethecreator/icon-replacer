@@ -16,3 +16,8 @@ __pycache__/
 *.log
 *.tmp
 *.bak
+*.pfx
+*.p12
+*.pem
+*.key
+*.pvk
