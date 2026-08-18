@@ -33,4 +33,20 @@ public sealed class DistributionChannelPolicyTests
             new[] { "direct", "store" },
             StringComparer.OrdinalIgnoreCase);
     }
+
+#if ICON_REPLACER_STORE
+    [Fact]
+    public void StoreBuildCompilesStoreManagedUpdatePolicy()
+    {
+        Assert.Equal("store", DistributionChannelPolicy.Current);
+        Assert.True(DistributionChannelPolicy.UpdatesManagedByStore);
+    }
+#else
+    [Fact]
+    public void DirectBuildCompilesDirectUpdatePolicy()
+    {
+        Assert.Equal("direct", DistributionChannelPolicy.Current);
+        Assert.False(DistributionChannelPolicy.UpdatesManagedByStore);
+    }
+#endif
 }
