@@ -6,14 +6,7 @@ param(
     [ValidateSet("x64")]
     [string]$Platform = "x64",
 
-    [string]$CertificatePassword = $(
-        if ($env:ICON_REPLACER_CERT_PASSWORD) {
-            $env:ICON_REPLACER_CERT_PASSWORD
-        }
-        else {
-            "password"
-        }
-    ),
+    [string]$CertificatePassword = $env:ICON_REPLACER_CERT_PASSWORD,
 
     [switch]$SkipBuild
 )
@@ -50,6 +43,10 @@ function Assert-PathInside {
     if (!$candidatePath.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Refusing to modify a path outside $Parent`: $Candidate"
     }
+}
+
+if ([string]::IsNullOrWhiteSpace($CertificatePassword)) {
+    throw "A non-empty certificate password is required. Set ICON_REPLACER_CERT_PASSWORD or pass -CertificatePassword."
 }
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
