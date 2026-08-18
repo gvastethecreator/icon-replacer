@@ -1,0 +1,101 @@
+name: Store readiness
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/store-readiness.yml'
+      - 'PRIVACY.md'
+      - 'Directory.Build.props'
+      - 'docs/store/**'
+      - 'scripts/Build-MsixPackage.ps1'
+      - 'scripts/Build-StoreMsix.ps1'
+      - 'scripts/Set-StoreIdentity.ps1'
+      - 'scripts/Test-StoreReadiness.ps1'
+      - 'src/IconReplacer.App/Package.appxmanifest'
+      - 'src/IconReplacer.App/IconReplacer.App.csproj'
+      - 'src/IconReplacer.App/Assets/**'
+      - 'src/IconReplacer.AppModel/DistributionChannelPolicy.cs'
+      - 'src/IconReplacer.AppModel/GitHubReleaseUpdateService.cs'
+      - 'tests/IconReplacer.Core.Tests/DistributionChannelPolicyTests.cs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/store-readiness.yml'
+      - 'PRIVACY.md'
+      - 'Directory.Build.props'
+      - 'docs/store/**'
+      - 'scripts/Build-MsixPackage.ps1'
+      - 'scripts/Build-StoreMsix.ps1'
+      - 'scripts/Set-StoreIdentity.ps1'
+      - 'scripts/Test-StoreReadiness.ps1'
+      - 'src/IconReplacer.App/Package.appxmanifest'
+      - 'src/IconReplacer.App/IconReplacer.App.csproj'
+      - 'src/IconReplacer.App/Assets/**'
+      - 'src/IconReplacer.AppModel/DistributionChannelPolicy.cs'
+      - 'src/IconReplacer.AppModel/GitHubReleaseUpdateService.cs'
+      - 'tests/IconReplacer.Core.Tests/DistributionChannelPolicyTests.cs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: icon-replacer-store-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Store and Explorer contracts
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate Store readiness
+        shell: pwsh
+        run: .\scripts\Test-StoreReadiness.ps1 -EvidencePath artifacts\store-readiness.json
+
+      - name: Upload readiness evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: IconReplacer-store-readiness
+          path: artifacts/store-readiness.json
+          if-no-files-found: error
+
+  build-store-msix:
+    name: Build x64 Store MSIX candidate
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Add Visual Studio MSBuild to PATH
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
+
+      - name: Install Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6
+        with:
+          python-version: '3.12'
+
+      - name: Build Store MSIX candidate
+        shell: pwsh
+        run: .\scripts\Build-StoreMsix.ps1
+
+      - name: Upload Store review bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: IconReplacer-store-x64-${{ github.sha }}
+          path: artifacts/store/x64/*
+          if-no-files-found: error
+          retention-days: 14
