@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "product": "Icon Replacer",
+  "reservationStatus": "pending",
+  "firstStoreArchitecture": "x64",
+  "packageIdentity": {
+    "name": null,
+    "publisher": null,
+    "publisherDisplayName": null,
+    "packageFamilyName": null,
+    "packageSid": null
+  },
+  "store": {
+    "productId": null,
+    "deepLink": null,
+    "webStoreUrl": null
+  },
+  "developmentIdentity": {
+    "name": "IconReplacer",
+    "publisher": "CN=IconReplacerDev",
+    "publisherDisplayName": "Icon Replacer"
+  },
+  "notes": [
+    "Reserve Icon Replacer in Partner Center before building a submission package.",
+    "The first Store release is intentionally x64 because the native Explorer extension is currently packaged and qualified for x64.",
+    "PFN and Package SID are derived verification values and must not be written into Package.appxmanifest.",
+    "Use scripts/Set-StoreIdentity.ps1 to apply exact Partner Center values without hidden whitespace."
+  ]
+}

@@ -45,6 +45,15 @@ public sealed class GitHubReleaseUpdateService
     {
         ArgumentNullException.ThrowIfNull(currentVersion);
 
+        if (DistributionChannelPolicy.UpdatesManagedByStore)
+        {
+            return CreateSnapshot(
+                AppUpdateStatus.UpToDate,
+                currentVersion,
+                latestVersion: NormalizeVersion(currentVersion),
+                message: "Updates are managed by Microsoft Store for this installation.");
+        }
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(RequestTimeout);
         using var request = new HttpRequestMessage(HttpMethod.Get, LatestReleaseApiUri);
