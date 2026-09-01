@@ -1,4 +1,4 @@
-# Shell Extension Safety
+# Shell extension safety
 
 Status: implemented; monitored through native smoke proof
 Date: 2026-07-14
@@ -57,4 +57,4 @@ The smoke test verifies every visible collection and icon already has a renderab
 
 ## Context-Menu Coexistence
 
-`Test-MsixLifecycle.ps1` snapshots and hashes every non-Icon-Replacer context-menu registration before cleanup, after install, and after uninstall. It fails on any unrelated registry change or unexpected Explorer process restart. Every mutating invocation requires the explicit `-ApproveExplorerRegistration` switch. Fresh-install and interactive proof still require an uninstalled baseline. A separate `-UpgradeInstalledPackage -KeepInstalled` path accepts exactly one installed package only when snapshot preflight proves that the candidate is validly signed, identity-compatible, and strictly newer; it updates without the duplicate-prone pre-install uninstall. `-InteractiveProof` holds the approved clean-baseline manual session and owns uninstall plus baseline verification. Before registration it persists the restore-state baseline with current-user DPAPI protection, and `-RecoverInterruptedProof` can finish cleanup after a terminated shell without reinstalling. The recovery snapshot is stored under `artifacts\context-menu-recovery\20260713-185129`.
+`Test-MsixLifecycle.ps1` snapshots and hashes every non-Icon-Replacer context-menu registration before cleanup, after install, and after uninstall. It fails on any unrelated registry change or unexpected Explorer process restart. Every mutating invocation requires the explicit `-ApproveExplorerRegistration` switch. Fresh-install and interactive proof still require an uninstalled baseline. A separate `-UpgradeInstalledPackage -KeepInstalled` path accepts exactly one installed package only when snapshot preflight proves that the candidate is validly signed, identity-compatible, and strictly newer; it updates without the duplicate-prone pre-install uninstall. `-InteractiveProof` holds the approved clean-baseline manual session and owns uninstall plus baseline verification. Before registration it persists the restore-state baseline with current-user DPAPI protection, and `-RecoverInterruptedProof` can finish cleanup after a terminated shell without reinstalling. Recovery snapshots are stored under `artifacts\context-menu-recovery`.

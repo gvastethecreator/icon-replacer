@@ -1,6 +1,6 @@
-# Icon Engine Contract
+# Icon engine contract
 
-Status: proposed
+Status: implemented contract
 Date: 2026-07-07
 
 ## Scope
@@ -143,7 +143,7 @@ It must:
 
 `AppLaunchRequestService` preserves the packaged-app activation contract used by
 CLI/model proof. The production Explorer path is the zero-window command host
-defined by ADR-0009 and ADR-0011.
+in the packaged modern and classic Explorer integration.
 
 It must:
 

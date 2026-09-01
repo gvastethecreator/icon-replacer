@@ -1,6 +1,6 @@
 # Restore State
 
-Status: proposed
+Status: living contract
 Date: 2026-07-07
 
 ## Location

@@ -1,4 +1,4 @@
-# Icon Replacer Microsoft Store submission runbook
+# Microsoft Store submission runbook
 
 This directory defines the release contract for publishing Icon Replacer as a packaged x64 desktop application with File Explorer integration.
 

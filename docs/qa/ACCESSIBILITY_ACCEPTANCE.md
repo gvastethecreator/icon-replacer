@@ -1,6 +1,6 @@
-# Accessibility Acceptance
+# Accessibility acceptance
 
-Status: proposed
+Status: living acceptance contract
 Date: 2026-07-07
 
 ## Keyboard
@@ -10,27 +10,25 @@ Date: 2026-07-07
 - Dialogs return focus to the invoking control.
 - Restore and error details are keyboard reachable.
 
-## Names and Semantics
+## Names and semantics
 
 - Icon-only controls have accessible names.
 - Icon tiles expose both icon name and category.
 - Errors are exposed as persistent UI, not toast-only.
 
-## Visual Adaptation
+## Visual adaptation
 
 - High contrast keeps controls and status readable.
 - 200% scaling does not clip primary commands or paths.
-- Long paths wrap or elide professionally with tooltip/details.
+- Long paths wrap or elide with tooltip/details.
 
-## CLI Planning Proof
-
-Run before WinUI implementation:
+## CLI planning proof
 
 ```powershell
 dotnet run --no-build --project src\IconReplacer.Cli -- accessibility-plan
 ```
 
-The command should list keyboard, names/semantics, visual adaptation, and manual proof requirements plus the WinUI surfaces that must satisfy them. This is planning evidence only; it does not replace screenshots or keyboard/high-contrast proof once the WinUI app exists.
+The command lists keyboard, names/semantics, visual adaptation, and manual proof requirements plus the WinUI surfaces that must satisfy them. This is planning evidence only. It does not replace screenshots or keyboard/high-contrast proof.
 
 ## Proof
 

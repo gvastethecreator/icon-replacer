@@ -21,7 +21,7 @@ A focused Windows utility for changing folder and shortcut icons from File Explo
 - Browse and import local `.ico` files without sending them anywhere.
 - Organize icons in one-level collections under `%USERPROFILE%\.icons`.
 - Review recent changes and restore the previous icon safely.
-- Keep normal use per-user: no administrator access is required.
+- Keep normal use per-user. Administrator access is not required.
 
 ## Product tour
 
@@ -42,7 +42,7 @@ This is an x64 release candidate, not a stable release. It uses a development ce
 Requirements:
 
 - Windows 10 version 1809 or later, x64.
-- Windows 11 for the modern File Explorer menu; Windows 10 uses the classic menu.
+- Windows 11 for the modern File Explorer menu. Windows 10 uses the classic menu.
 - Local `.ico` files for custom imports.
 
 ## First minute
@@ -63,13 +63,11 @@ dotnet test tests\IconReplacer.Core.Tests\IconReplacer.Core.Tests.csproj --confi
 .\BuildAndRun.ps1 src\IconReplacer.App\IconReplacer.App.csproj -SkipRun /p:Configuration=Release /p:Platform=x64
 ```
 
-Architecture, packaging, testing, security, and release proof live in the [documentation index](docs/INDEX.md). Contributor expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Setup, specs, testing, security, and release proof live in the [documentation index](docs/INDEX.md). Contributor expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Microsoft Store preparation
 
-The Store release is a separate x64 package channel with an exact Partner Center identity, Store-managed update policy, package validation, Explorer/COM lifecycle matrix, bilingual listing and privacy material, certification notes, and release evidence.
-
-See:
+The Store release is a separate x64 package channel. It uses an exact Partner Center identity, Store-managed updates, package validation, an Explorer/COM lifecycle matrix, bilingual listing and privacy material, certification notes, and release evidence.
 
 - [Microsoft Store submission runbook](docs/store/README.md)
 - [Store listing source](docs/store/LISTING.md)
@@ -78,9 +76,9 @@ See:
 - [Privacy policy](PRIVACY.md)
 - [Source-license decision](docs/store/LICENSE-DECISION.md)
 
-The final Store build is deliberately blocked until Icon Replacer is reserved in Partner Center and the exact identity is applied. The first Store architecture remains x64 because the native Explorer extension and its lifecycle evidence must be produced separately for every architecture.
+The final Store build stays blocked until Icon Replacer is reserved in Partner Center and the exact identity is applied. The first Store architecture remains x64 because the native Explorer extension and its lifecycle evidence must be produced separately for every architecture.
 
-The Store build does not contact GitHub Releases for updates. The existing development-certificate release candidate remains a distinct evaluator channel and is not the stable Store package.
+The Store build does not contact GitHub Releases for updates. The development-certificate release candidate remains a distinct evaluator channel and is not the stable Store package.
 
 ## Release status
 
@@ -96,4 +94,4 @@ The core icon engine, restore path, WinUI app, command host, and Explorer extens
 
 ## License
 
-No source-code license has been selected yet. The repository is public for inspection, but it does not currently grant permission to reuse, modify, or redistribute the source code. The options and required follow-up are documented in [the Store license-decision record](docs/store/LICENSE-DECISION.md).
+No source-code license has been selected yet. The repository is public for inspection, but it does not currently grant permission to reuse, modify, or redistribute the source code. Options and required follow-up are in the [source-license decision](docs/store/LICENSE-DECISION.md).

@@ -1,10 +1,10 @@
-# Security Policy
+# Security policy
 
 ## Reporting a vulnerability
 
-Use the repository's private GitHub Security Advisory flow to report vulnerabilities. Include affected paths, reproduction steps, impact, and any safe proof you can share. Do not include credentials, personal data, or a working exploit in a public issue.
+Use the repository's private GitHub Security Advisory flow. Include affected paths, reproduction steps, impact, and any safe proof you can share. Do not include credentials, personal data, or a working exploit in a public issue.
 
-If private reporting is unavailable, open a public issue that asks the maintainer to enable a private channel without disclosing vulnerability details.
+If private reporting is unavailable, open a public issue that asks the maintainer to enable a private channel. Do not disclose vulnerability details there.
 
 ## Scope
 

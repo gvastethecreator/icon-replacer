@@ -4,7 +4,7 @@ Icon Replacer is a Windows-focused .NET, WinUI, and native shell project. Keep c
 
 ## Development setup
 
-1. Install the prerequisites in [Installation and Packaging](docs/operations/INSTALLATION.md).
+1. Install the prerequisites in [Installation and packaging](docs/operations/INSTALLATION.md).
 2. Restore and run the managed tests:
 
    ```powershell
@@ -17,14 +17,14 @@ Icon Replacer is a Windows-focused .NET, WinUI, and native shell project. Keep c
    .\scripts\Build-NativeShellExtension.ps1 -Configuration Debug -Platform x64
    ```
 
-4. Launch the packaged app through `BuildAndRun.ps1` or `winapp`; do not run the packaged executable directly.
+4. Launch the packaged app through `BuildAndRun.ps1` or `winapp`. Do not run the packaged executable directly.
 
 ## Pull requests
 
 - Explain the user-visible behavior and risk.
 - Add or update focused tests.
 - Keep Explorer registration behind the approval-gated lifecycle script.
-- Update architecture, ADR, security, or verification docs when their contracts change.
+- Update security, spec, or verification docs when their contracts change.
 - Do not commit generated output under `artifacts/`, local reports, credentials, or personal test data.
 
 ## Reporting security issues

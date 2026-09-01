@@ -236,21 +236,16 @@ artifacts\native\x64\Release\IconReplacer.ShellExtension.Smoke.exe artifacts\nat
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Test-MsixLifecycle.ps1 -ApproveExplorerRegistration
 ```
 
-Expected current result:
+Expected result:
 
-- App build: pass with 0 warnings and 0 errors.
-- .NET suite: 289 passed, 0 failed, including apply/restore persistence compensation for folders/shortcuts and double failures, per-target concurrent apply/restore, restore-state concurrency, adaptive DPI thumbnail decoding, rounded high-resolution official assets, GitHub release parsing/update states, manifest-derived package versioning, guarded upgrade/deployment evidence, and the existing WinUI/shell and directory-link tests.
-- Gallery First UI Automation: 15 passed, 0 failed, including centered startup, Library/About navigation, and keyboard resize of the Collections pane.
-- Accessibility source contracts: pass for Gallery First/About surface names, target-specific restore names, polite live regions, splitter semantics, and adaptive 200% toolbar states.
-- Accessibility UI Automation: 9/9 pass at the machine's 125% scale against the installed high-resolution candidate, covering Library names, DPI, toolbar fit, keyboard focus, preview names, About/version/credits/update status, and return navigation. The 200% and High Contrast runs remain open.
-- Responsive grid: 3/6/8 columns across compact/reference/wide widths with stable cell widths and gaps.
-- Navigation: expanded pane measures 184 logical px; the compact rail remains available.
-- Resize performance: pane-width writes are coalesced to the render loop, gallery metrics update once after drag, and one shared metrics object replaces per-icon layout notifications.
-- Native COM smoke: modern commands are enabled normally and hidden after classic `IObjectWithSelection` dispatch; callback-measured and callback-drawn 32-bit ARGB folder/shortcut previews, the 242-command cap, constrained 8-id range, and 250 ms full-catalog query budget pass.
-- Snapshot-only guard: 57 unrelated entries keep normalized hash `A7C938435CB53F206BC26A2A9698273F36E8E7F03F427F0AF92BF9BD493B99C1` without package mutation; the previous Icon Replacer candidate remains installed.
-- Deployment proof: signed candidate `1.0.0.5` upgraded the matching installed identity through the explicit approval path and is active in Explorer.
-- Official icon contract: canonical 2048x2048 light/dark source hashes pass; deterministic regeneration produces rounded 512 px display PNGs, nine-frame ICOs, light/dark taskbar variants, and identical fallback/light ICO bytes.
-- Signed `1.0.0.5` candidate MSIX: `07165F5CD50912C5DB00713652A22F3FC8253C57A80BC809DB713B5BF587CAE7`, 48,592,977 bytes, valid `CN=IconReplacerDev` signature.
-- MSIX lifecycle: exact-package guarded upgrade, Explorer reload, 185-file Icon Library preservation, restore-state preservation, and unrelated-handler preservation pass. Clean uninstall proof remains open.
-- Design QA: `design-qa.md` reports `final result: passed` with same-state Light/Dark comparison boards.
-- Explorer registration: `1.0.0.5` is installed. The classic folder menu visually exposes one grouped `Change icon...` plus `Icon collections` pair with official app icons and preserved unrelated entries; direct picker launch passes. Final nested-preview capture and the remaining target/apply/restore matrix remain open.
+- App build passes with 0 warnings and 0 errors.
+- Managed tests pass, including apply/restore compensation, concurrency, official assets, GitHub update parsing, guarded deployment evidence, WinUI/shell source contracts, and directory-link coverage.
+- Gallery First UI Automation covers centered startup, Library/About navigation, and keyboard resize of the Collections pane.
+- Accessibility source contracts cover Gallery First/About names, target-specific restore names, polite live regions, splitter semantics, and adaptive 200% toolbar states.
+- Accessibility UI Automation at the machine scale must pass. The 200% and High Contrast runs remain open until captured.
+- Responsive grid uses 3/6/8 columns across compact/reference/wide widths.
+- Native COM smoke: modern commands stay enabled normally and hide after classic `IObjectWithSelection` dispatch. Previews, the 242-command cap, constrained 8-id range, and 250 ms full-catalog query budget must pass.
+- Snapshot-only guard preserves unrelated handlers without package mutation.
+- Official icon contract: canonical source hashes pass and deterministic regeneration produces rounded display PNGs, nine-frame ICOs, and taskbar variants.
+- MSIX lifecycle: exact-package guarded upgrade, Explorer reload, Icon Library preservation, restore-state preservation, and unrelated-handler preservation. Clean uninstall proof remains open.
+- Explorer registration: classic folder menu exposes one grouped `Change icon...` plus `Icon collections` pair with official app icons. Direct picker launch must pass. Remaining target/apply/restore matrix stays open until captured.

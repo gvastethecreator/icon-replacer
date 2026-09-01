@@ -1,4 +1,4 @@
-# Icon Replacer Privacy Policy
+# Icon Replacer privacy policy
 
 **Effective date:** August 17, 2026  
 **Publisher:** To be completed with the verified Microsoft Store publisher name before submission

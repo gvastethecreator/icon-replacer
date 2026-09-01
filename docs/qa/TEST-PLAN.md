@@ -1,6 +1,6 @@
-# QA Test Plan
+# QA test plan
 
-Status: proposed
+Status: living QA matrix
 Date: 2026-07-07
 
 ## Quality Bar
@@ -191,20 +191,6 @@ Capture evidence for:
 - Do not remove Mark-of-the-Web or bypass Windows June 2026 `desktop.ini` hardening automatically.
 - Do not modify remote/untrusted folders in V1.
 - Do not require admin for normal use.
-
-## Local Test Collections
-
-Created under `C:\Users\cristian\.icons` from `D:\ICONS\Folder11-Ico\ico`:
-
-- `Adobe Creative`: 30 icons.
-- `Design 3D`: 30 icons.
-- `Developer Tools`: 30 icons.
-- `Media Audio Video`: 30 icons.
-- `System Utilities`: 30 icons.
-- `Gaming Hardware`: 30 icons.
-- `Imported`: 5 icons from direct-picker/import proof.
-
-CLI catalog proof sees 7 categories total including `Imported`, with 185 valid icons. Twelve generated duplicate test collections were moved to `artifacts\icon-library-archive\20260713-192200` rather than deleted.
 
 ## CLI Proof
 

@@ -1,4 +1,4 @@
-# Icon Replacer source-license decision
+# Source-license decision
 
 **Status:** decision required before stable public release  
 **Scope:** source repository licensing, not Microsoft Store application licensing

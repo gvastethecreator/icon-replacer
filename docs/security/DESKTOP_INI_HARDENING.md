@@ -1,16 +1,16 @@
-# Desktop.ini Hardening Policy
+# Desktop.ini hardening policy
 
-Status: proposed
+Status: living policy
 Date: 2026-07-07
 
 ## Context
 
-Windows security updates released on or after June 9, 2026 can cause Windows to ignore `desktop.ini` when the source is not trusted, including Mark-of-the-Web, WebDAV/HTTP locations, or network paths outside trusted zones.
+Windows security updates released on or after June 9, 2026 can cause Windows to ignore `desktop.ini` when the source is not trusted. That includes Mark-of-the-Web, WebDAV/HTTP locations, or network paths outside trusted zones.
 
-## V1 Policy
+## V1 policy
 
-- Support local trusted Folder Targets.
-- Block or warn on UNC, WebDAV, HTTP-backed, or untrusted remote Targets.
+- Support local trusted folder targets.
+- Block or warn on UNC, WebDAV, HTTP-backed, or untrusted remote targets.
 - Do not run `Unblock-File` automatically.
 - Do not change zone policy.
 - Do not bypass Windows security hardening.
@@ -19,4 +19,3 @@ Windows security updates released on or after June 9, 2026 can cause Windows to 
 ## Acceptance
 
 Remote/untrusted cases must produce an explicit result, not a silent success.
-

@@ -1,4 +1,4 @@
-# Icon Replacer certification notes
+# Certification notes
 
 Copy and adapt this document immediately before Partner Center submission. Replace bracketed values and update the date.
 

@@ -1,4 +1,4 @@
-# Icon Replacer Store listing source
+# Store listing source
 
 Review this copy against the exact submitted build and current Partner Center field limits.
 

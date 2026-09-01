@@ -1,14 +1,14 @@
-# Release Downloads
+# Release downloads
 
-## Current Candidate
+## Current candidate
 
-GitHub prerelease: `v1.0.0-rc.1`  
-MSIX package version: `1.0.0.6`  
+GitHub prerelease: `v1.0.0-rc.1`
+MSIX package version: `1.0.0.6`
 Architecture: Windows x64
 
 This candidate is intended for evaluation. It is signed with `CN=IconReplacerDev`, not with a production-trusted publisher certificate. Installing it requires explicitly trusting the public certificate shipped beside the MSIX.
 
-## Download And Verify
+## Download and verify
 
 Download these three assets from the GitHub release:
 
@@ -41,7 +41,7 @@ Get-AuthenticodeSignature .\IconReplacer_1.0.0.6_x64.msix |
 
 The status must be `Valid`; the signer must be `CN=IconReplacerDev`; and the certificate thumbprint must be `F235B1142A11E383C0673599772334C0F0797F4A`.
 
-## Trust And Install
+## Trust and install
 
 Open an elevated PowerShell session in the download directory:
 
@@ -75,7 +75,7 @@ Get-ChildItem Cert:\LocalMachine\TrustedPeople |
 
 The product policy preserves the user's `%USERPROFILE%\.icons` library and restore history by default. The stable release remains blocked until clean-uninstall preservation and Explorer cleanup are captured end to end.
 
-## Maintainer Build
+## Maintainer build
 
 Create a clean release bundle from the manifest version:
 
